@@ -128,15 +128,15 @@ function handleAddTask() {
     }
 }
 
-// Añadir soporte para enviar el formulario con Enter
+// Añadir soporte para enviar el formulario con Enter y enfocar el input principal
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('task-form');
     const taskNameInput = document.getElementById('task-name');
     if (taskNameInput) {
         setTimeout(() => {
             taskNameInput.focus();
-            taskNameInput.select(); // Selecciona el texto por si acaso
-        }, 300); // 300ms suele ser suficiente
+            taskNameInput.select();
+        }, 300);
     }
     if (form) {
         form.addEventListener('submit', function(e) {
@@ -144,10 +144,8 @@ document.addEventListener('DOMContentLoaded', function() {
             handleAddTask();
         });
     }
-});
 
-// Mostrar el popup al cargar la página
-document.addEventListener('DOMContentLoaded', function() {
+    // --- POPUP ---
     const popup = document.getElementById('popup-tarea');
     const popupForm = document.getElementById('popup-task-form');
     const popupInput = document.getElementById('popup-task-name');
@@ -157,26 +155,31 @@ document.addEventListener('DOMContentLoaded', function() {
     // Mostrar el popup al iniciar
     if (popup) {
         popup.style.display = 'flex';
-        setTimeout(() => { popupInput.focus(); }, 200);
+        setTimeout(() => { popupInput && popupInput.focus(); }, 200);
     }
 
     // Añadir tarea desde el popup
-    popupForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const nombre = popupInput.value.trim();
-        const categoria = popupCategory.value || 'bandeja-de-entrada';
-        if (nombre) {
-            addTask(categoria, nombre);
-            popupInput.value = '';
-            popup.style.display = 'none';
-        } else {
-            alert('Por favor, ingresa un nombre de tarea.');
-        }
-    });
+    if (popupForm) {
+        popupForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const nombre = popupInput.value.trim();
+            const categoria = popupCategory.value || 'bandeja-de-entrada';
+            if (nombre) {
+                addTask(categoria, nombre);
+                popupInput.value = '';
+                popup.style.display = 'none';
+            } else {
+                alert('Por favor, ingresa un nombre de tarea.');
+            }
+        });
+    }
 
     // Cancelar y cerrar el popup
-    cancelarBtn.addEventListener('click', function() {
-        popup.style.display = 'none';
-    });
+    if (cancelarBtn) {
+        cancelarBtn.addEventListener('click', function() {
+            popup.style.display = 'none';
+        });
+    }
 });
+
 
