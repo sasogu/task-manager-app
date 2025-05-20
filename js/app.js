@@ -133,7 +133,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('task-form');
     const taskNameInput = document.getElementById('task-name');
     if (taskNameInput) {
-        taskNameInput.focus(); // Esto activa el teclado en móviles y enfoca el input en escritorio
+        setTimeout(() => {
+            taskNameInput.focus();
+            taskNameInput.select(); // Selecciona el texto por si acaso
+        }, 300); // 300ms suele ser suficiente
     }
     if (form) {
         form.addEventListener('submit', function(e) {
