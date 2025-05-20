@@ -123,6 +123,10 @@ function handleAddTask() {
 // Añadir soporte para enviar el formulario con Enter
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('task-form');
+    const taskNameInput = document.getElementById('task-name');
+    if (taskNameInput) {
+        taskNameInput.focus(); // Esto activa el teclado en móviles y enfoca el input en escritorio
+    }
     if (form) {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
