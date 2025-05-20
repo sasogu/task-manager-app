@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor de Tareas</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <header>
+        <h1>Gestor de Tareas</h1>
+    </header>
+    <main>
+        <div id="task-form">
+            <input type="text" id="task-name" placeholder="Nueva tarea" />
+            <select id="task-category">
+                <option value="" disabled selected>Selecciona una categoría</option>
+                <option value="bandeja-de-entrada">Bandeja de Entrada</option>
+                <option value="prioritaria">Prioritaria</option>
+                <option value="proximas">Próximas</option>
+                <option value="algun-dia">Algún Día</option>
+                <option value="archivadas">Archivadas</option>
+            </select>
+            <button onclick="handleAddTask()">Añadir Tarea</button>
+        </div>
+        <div id="task-container"></div>
+    </main>
+    <footer>
+        <script src="js/app.js"></script>
+    </footer>
+</body>
+</html>
