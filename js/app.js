@@ -29,7 +29,15 @@ function removeTask(category, taskIndex) {
 
 function toggleTaskCompletion(category, taskIndex) {
     if (categories[category] && categories[category][taskIndex]) {
-        categories[category][taskIndex].completed = !categories[category][taskIndex].completed;
+        // Si la tarea no está en archivadas y se marca como completada, archívala
+        if (category !== 'archivadas' && !categories[category][taskIndex].completed) {
+            categories[category][taskIndex].completed = true;
+            const task = categories[category].splice(taskIndex, 1)[0];
+            categories['archivadas'].push(task);
+        } else if (category === 'archivadas') {
+            // Si está en archivadas, solo cambia el estado completado
+            categories[category][taskIndex].completed = !categories[category][taskIndex].completed;
+        }
         saveCategoriesToLocalStorage();
         renderTasks();
     } else {
