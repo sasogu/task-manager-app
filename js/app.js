@@ -146,3 +146,37 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// Mostrar el popup al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    const popup = document.getElementById('popup-tarea');
+    const popupForm = document.getElementById('popup-task-form');
+    const popupInput = document.getElementById('popup-task-name');
+    const popupCategory = document.getElementById('popup-task-category');
+    const cancelarBtn = document.getElementById('cancelar-popup');
+
+    // Mostrar el popup al iniciar
+    if (popup) {
+        popup.style.display = 'flex';
+        setTimeout(() => { popupInput.focus(); }, 200);
+    }
+
+    // Añadir tarea desde el popup
+    popupForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const nombre = popupInput.value.trim();
+        const categoria = popupCategory.value || 'bandeja-de-entrada';
+        if (nombre) {
+            addTask(categoria, nombre);
+            popupInput.value = '';
+            popup.style.display = 'none';
+        } else {
+            alert('Por favor, ingresa un nombre de tarea.');
+        }
+    });
+
+    // Cancelar y cerrar el popup
+    cancelarBtn.addEventListener('click', function() {
+        popup.style.display = 'none';
+    });
+});
+
