@@ -71,7 +71,7 @@ function renderTasks() {
             taskDiv.innerHTML = `
                 <input type="checkbox" ${taskObj.completed ? 'checked' : ''} onclick="toggleTaskCompletion('${category}', ${index})">
                 <span class="${taskObj.completed ? 'completed' : ''}">${taskObj.task}</span>
-                <button onclick="removeTask('${category}', ${index})">Eliminar</button>
+                ${category === 'archivadas' ? `<button onclick="removeTask('${category}', ${index})">Eliminar</button>` : ''}
                 <select onchange="moveTask('${category}', ${index}, this.value)">
                     <option value="" disabled selected>Mover a...</option>
                     ${Object.keys(categories)
@@ -119,4 +119,15 @@ function handleAddTask() {
         alert('Por favor, ingresa un nombre de tarea.');
     }
 }
+
+// Añadir soporte para enviar el formulario con Enter
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('task-form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            handleAddTask();
+        });
+    }
+});
 

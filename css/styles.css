@@ -71,3 +71,20 @@ footer {
     bottom: 0;
     width: 100%;
 }
+
+@media (max-width: 600px) {
+    .container {
+        width: 98%;
+        padding: 0 1%;
+    }
+    form {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    input[type="text"], button {
+        width: 100%;
+        box-sizing: border-box;
+        font-size: 1.1em;
+    }
+}
