@@ -152,11 +152,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const popupCategory = document.getElementById('popup-task-category');
     const cancelarBtn = document.getElementById('cancelar-popup');
 
-    // Mostrar el popup al iniciar
-    if (popup) {
-        popup.style.display = 'flex';
-        setTimeout(() => { popupInput && popupInput.focus(); }, 200);
-    }
+    // Quita o comenta esta parte para NO mostrar el popup al iniciar
+    // if (popup) {
+    //     popup.style.display = 'flex';
+    //     setTimeout(() => { popupInput && popupInput.focus(); }, 200);
+    // }
 
     // Añadir tarea desde el popup
     if (popupForm) {
@@ -178,6 +178,15 @@ document.addEventListener('DOMContentLoaded', function() {
     if (cancelarBtn) {
         cancelarBtn.addEventListener('click', function() {
             popup.style.display = 'none';
+        });
+    }
+
+    // Botón para abrir el popup de nueva tarea
+    const abrirPopupBtn = document.getElementById('abrir-popup-tarea');
+    if (abrirPopupBtn && popup) {
+        abrirPopupBtn.addEventListener('click', function() {
+            popup.style.display = 'flex';
+            setTimeout(() => { popupInput && popupInput.focus(); }, 200);
         });
     }
 });
