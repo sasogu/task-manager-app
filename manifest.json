@@ -1,7 +1,7 @@
 {
   "name": "Gestor de Tareas",
   "short_name": "Tareas",
-  "start_url": ".",
+  "start_url": "task-manager-app/index.html",
   "display": "standalone",
   "background_color": "#35424a",
   "theme_color": "#35424a",
