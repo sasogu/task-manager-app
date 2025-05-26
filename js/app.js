@@ -191,4 +191,47 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// Función para obtener las tareas (ajusta según tu almacenamiento)
+function obtenerTareas() {
+    return JSON.parse(localStorage.getItem('tareas') || '[]');
+}
+
+// Función para guardar tareas (ajusta según tu lógica)
+function guardarTareas(tareas) {
+    localStorage.setItem('tareas', JSON.stringify(tareas));
+}
+
+// Exportar tareas
+document.getElementById('backup-btn').addEventListener('click', function() {
+    const tareas = obtenerTareas();
+    const blob = new Blob([JSON.stringify(tareas, null, 2)], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'tareas-backup.json';
+    a.click();
+    URL.revokeObjectURL(url);
+});
+
+// Importar tareas
+document.getElementById('restore-btn').addEventListener('click', function() {
+    document.getElementById('restore-file').click();
+});
+
+document.getElementById('restore-file').addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const tareas = JSON.parse(e.target.result);
+            guardarTareas(tareas);
+            location.reload(); // Recarga para mostrar las tareas restauradas
+        } catch (err) {
+            alert('Archivo no válido');
+        }
+    };
+    reader.readAsText(file);
+});
+
 

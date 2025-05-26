@@ -16,6 +16,7 @@
     <main>
         <br>
         <button id="abrir-popup-tarea" type="button">Nueva tarea</button>
+       
         <!-- formulario para ingresar tareas
         <form id="task-form">
             <input type="text" id="task-name" placeholder="Nueva tarea">
@@ -29,10 +30,13 @@
             <button type="submit">Añadir</button>
         </form> 
         -->
-        
+    
         <div id="task-container"></div>
     </main>
-
+     <!-- botones copia de seguridad -->   
+ <button id="backup-btn" type="button">Exportar tareas</button>
+        <button id="restore-btn" type="button">Importar tareas</button>
+        <input type="file" id="restore-file" accept=".json" style="display:none;">
     <!-- Popup para nueva tarea -->
     <div id="popup-tarea" class="modal">
         <div class="modal-content">
