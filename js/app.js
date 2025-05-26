@@ -7,6 +7,17 @@ const categories = {
     "archivadas": []
 };
 
+function obtenerFechaActualParaNombreArchivo() {
+    const ahora = new Date();
+    const año = ahora.getFullYear();
+    const mes = String(ahora.getMonth() + 1).padStart(2, '0');
+    const dia = String(ahora.getDate()).padStart(2, '0');
+    const hora = String(ahora.getHours()).padStart(2, '0');
+    const minutos = String(ahora.getMinutes()).padStart(2, '0');
+    return `${año}-${mes}-${dia}_${hora}-${minutos}`;
+}
+
+
 function addTask(category, task) {
     if (categories[category]) {
         categories[category].push({ task, completed: false });
@@ -191,27 +202,40 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Función para obtener las tareas (ajusta según tu almacenamiento)
+// Función para obtener las tareas desde localStorage
 function obtenerTareas() {
-    return JSON.parse(localStorage.getItem('tareas') || '[]');
+    const data = localStorage.getItem('categories');
+    return data ? JSON.parse(data) : {
+        "bandeja-de-entrada": [],
+        "prioritaria": [],
+        "proximas": [],
+        "algun-dia": [],
+        "archivadas": []
+    };
 }
 
-// Función para guardar tareas (ajusta según tu lógica)
-function guardarTareas(tareas) {
-    localStorage.setItem('tareas', JSON.stringify(tareas));
+// Función para guardar las tareas en localStorage
+function guardarTareas(tareasPorCategoria) {
+    localStorage.setItem('categories', JSON.stringify(tareasPorCategoria));
 }
 
 // Exportar tareas
 document.getElementById('backup-btn').addEventListener('click', function() {
     const tareas = obtenerTareas();
-    const blob = new Blob([JSON.stringify(tareas, null, 2)], {type: 'application/json'});
+    const backupData = {
+        fecha: new Date().toISOString(),
+        tareas
+    };
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], {type: 'application/json'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'tareas-backup.json';
+    a.download = `tareas-backup_${obtenerFechaActualParaNombreArchivo()}.json`;
+
     a.click();
     URL.revokeObjectURL(url);
 });
+
 
 // Importar tareas
 document.getElementById('restore-btn').addEventListener('click', function() {
@@ -221,17 +245,30 @@ document.getElementById('restore-btn').addEventListener('click', function() {
 document.getElementById('restore-file').addEventListener('change', function(event) {
     const file = event.target.files[0];
     if (!file) return;
+
     const reader = new FileReader();
     reader.onload = function(e) {
         try {
-            const tareas = JSON.parse(e.target.result);
-            guardarTareas(tareas);
-            location.reload(); // Recarga para mostrar las tareas restauradas
+            const json = JSON.parse(e.target.result);
+
+            if (!json.tareas || typeof json.tareas !== 'object') {
+                throw new Error('Formato de backup no válido');
+            }
+
+            // Reemplaza el contenido actual de `categories` sin recargar
+            Object.keys(categories).forEach(cat => delete categories[cat]); // Limpia
+            Object.assign(categories, json.tareas); // Carga
+
+            saveCategoriesToLocalStorage(); // Guarda en localStorage
+            renderTasks(); // Vuelve a renderizar en pantalla
+
+            alert('Tareas restauradas correctamente.');
         } catch (err) {
-            alert('Archivo no válido');
+            alert('Error al importar: ' + err.message);
         }
     };
     reader.readAsText(file);
 });
+
 
 
