@@ -95,6 +95,37 @@ footer {
     gap: 10px;
 }
 
+.boton-accion {
+    margin-bottom: 12px;
+    width: 100%;
+    max-width: 350px;
+}
+
+/* Para los botones de copia de seguridad */
+.acciones {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 350px;
+    margin: 0 auto 20px auto;
+}
+
+/* Para los botones del popup */
+.acciones-popup {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+@media (min-width: 500px) {
+    .acciones-popup {
+        flex-direction: row;
+        justify-content: flex-end;
+        gap: 16px;
+    }
+}
+
 @media (max-width: 600px) {
     .container {
         width: 98%;
@@ -109,5 +140,9 @@ footer {
         width: 100%;
         box-sizing: border-box;
         font-size: 1.1em;
+    }
+    .boton-accion {
+        font-size: 1.1em;
+        margin-bottom: 18px;
     }
 }

@@ -34,10 +34,12 @@
         <div id="task-container"></div>
     </main>
      <!-- botones copia de seguridad -->   
- <button id="backup-btn" type="button">Exportar tareas</button>
-  <br>
-        <button id="restore-btn" type="button">Importar tareas</button>
+     <div class="acciones">
+        <button id="backup-btn" type="button" class="boton-accion">Exportar tareas</button>
+        <button id="restore-btn" type="button" class="boton-accion">Importar tareas</button>
         <input type="file" id="restore-file" accept=".json" style="display:none;">
+    </div>
+
     <!-- Popup para nueva tarea -->
     <div id="popup-tarea" class="modal">
         <div class="modal-content">
@@ -50,9 +52,8 @@
                     <option value="algun-dia">Algún Día</option>
                     <option value="archivadas">Archivadas</option>
                 </select>
-                <div style="margin-top:10px;">
+                <div class="acciones-popup">
                     <button type="submit">Añadir</button>
-                    <br>
                     <button type="button" id="cancelar-popup">Cancelar</button>
                 </div>
             </form>
