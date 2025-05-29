@@ -6,6 +6,7 @@ const categories = {
     "algun-dia": [],
     "archivadas": []
 };
+const deletedTasks = JSON.parse(localStorage.getItem('deletedTasks') || '[]');
 
 function obtenerFechaActualParaNombreArchivo() {
     const ahora = new Date();
@@ -30,7 +31,15 @@ function addTask(category, task) {
 
 function removeTask(category, taskIndex) {
     if (categories[category]) {
-        categories[category].splice(taskIndex, 1);
+        const removed = categories[category].splice(taskIndex, 1)[0];
+        if (removed) {
+            deletedTasks.push({
+                ...removed,
+                category,
+                deletedAt: new Date().toISOString()
+            });
+            localStorage.setItem('deletedTasks', JSON.stringify(deletedTasks));
+        }
         saveCategoriesToLocalStorage();
         renderTasks();
     } else {
@@ -268,6 +277,26 @@ document.getElementById('restore-file').addEventListener('change', function(even
         }
     };
     reader.readAsText(file);
+});
+
+// Exportar tareas eliminadas
+document.getElementById('export-deleted-btn').addEventListener('click', function() {
+    const deleted = JSON.parse(localStorage.getItem('deletedTasks') || '[]');
+    if (deleted.length === 0) {
+        alert('No hay tareas eliminadas para exportar.');
+        return;
+    }
+    const backupData = {
+        fecha: new Date().toISOString(),
+        tareasEliminadas: deleted
+    };
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tareas-eliminadas_${obtenerFechaActualParaNombreArchivo()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
 });
 
 
