@@ -286,15 +286,27 @@ document.getElementById('export-deleted-btn').addEventListener('click', function
         alert('No hay tareas eliminadas para exportar.');
         return;
     }
-    const backupData = {
-        fecha: new Date().toISOString(),
-        tareasEliminadas: deleted
-    };
-    const blob = new Blob([JSON.stringify(backupData, null, 2)], {type: 'application/json'});
+
+    // Encabezados CSV
+    const headers = ['Tarea', 'Completada', 'Categoría', 'Fecha de eliminación'];
+    // Filas CSV
+    const rows = deleted.map(t =>
+        [
+            `"${(t.task || '').replace(/"/g, '""')}"`,
+            t.completed ? 'Sí' : 'No',
+            t.category || '',
+            t.deletedAt || ''
+        ].join(',')
+    );
+    // Unir encabezados y filas
+    const csvContent = [headers.join(','), ...rows].join('\r\n');
+
+    // Descargar archivo
+    const blob = new Blob([csvContent], {type: 'text/csv'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `tareas-eliminadas_${obtenerFechaActualParaNombreArchivo()}.json`;
+    a.download = `tareas-eliminadas_${obtenerFechaActualParaNombreArchivo()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
 });
