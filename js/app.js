@@ -182,17 +182,16 @@ async function validateToken() {
 }
 
 // FUNCIÓN DE FUSIÓN CORREGIDA Y MÁS ROBUSTA
-function mergeTasks(localCategories, remoteCategories) {
+function mergeTasks(localCategories, remoteCategories, deletedIdsSet) {
     const tasksById = new Map();
 
-    // 1. Poner TODAS las tareas (locales y remotas) en un solo mapa,
-    //    quedándose siempre con la versión que tenga el timestamp más reciente.
     const processCategory = (categoriesObject) => {
         for (const categoryName in categoriesObject) {
             for (const task of categoriesObject[categoryName]) {
+                // Ignorar tareas eliminadas
+                if (deletedIdsSet.has(task.id)) continue;
                 const existing = tasksById.get(task.id);
                 if (!existing || new Date(task.lastModified) > new Date(existing.lastModified)) {
-                    // Guardamos la tarea Y la categoría a la que pertenece
                     tasksById.set(task.id, { ...task, category: categoryName });
                 }
             }
@@ -202,22 +201,21 @@ function mergeTasks(localCategories, remoteCategories) {
     processCategory(localCategories);
     processCategory(remoteCategories);
 
-    // 2. Ahora que tenemos la lista definitiva de tareas ganadoras,
-    //    reconstruimos el objeto de categorías desde cero.
-    const mergedCategories = {
-        "bandeja-de-entrada": [], "prioritaria": [], "proximas": [], "algun-dia": [], "archivadas": []
-    };
-
+    const mergedCategories = { "bandeja-de-entrada": [], "prioritaria": [], "proximas": [], "algun-dia": [], "archivadas": [] };
     for (const task of tasksById.values()) {
-        // Si la categoría de la tarea ganadora existe, la colocamos allí.
         if (mergedCategories[task.category]) {
-            // Quitamos la propiedad 'category' que era temporal
             const { category, ...finalTask } = task;
-            mergedCategories[category].push(finalTask);
+            mergedCategories[task.category].push(finalTask);
         }
     }
-
     return mergedCategories;
+}
+
+function mergeDeletedTasks(localDeleted, remoteDeleted) {
+    const deletedById = new Map();
+    localDeleted.forEach(t => deletedById.set(t.id, t));
+    remoteDeleted.forEach(t => deletedById.set(t.id, t));
+    return Array.from(deletedById.values());
 }
 
 async function syncToDropbox(showAlert = true) {
@@ -245,18 +243,24 @@ async function syncFromDropbox(force = false) {
         if (!meta.ok) return meta.status === 409 ? await syncToDropbox(false) : false;
         const remoteMeta = await meta.json();
         if (force || !localLastSync || new Date(remoteMeta.server_modified) > new Date(localLastSync)) {
-            console.log(force ? '⬇️ Forzando descarga...' : '⬇️ Nueva versión remota detectada...');
             const res = await fetch('https://content.dropboxapi.com/2/files/download', { method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}`, 'Dropbox-API-Arg': JSON.stringify({ path: '/tareas.json' }) } });
             if (res.ok) {
                 const remoteData = await res.json();
                 if (remoteData.categories) {
-                    const merged = mergeTasks(categories, remoteData.categories);
-                    Object.assign(categories, merged);
+                    // 1. Fusionar eliminados
+                    const remoteDeleted = remoteData.deletedTasks || [];
+                    const mergedDeletedList = mergeDeletedTasks(deletedTasks, remoteDeleted);
+                    const deletedIdsSet = new Set(mergedDeletedList.map(t => t.id));
+                    // 2. Fusionar categorías ignorando eliminados
+                    const mergedCategories = mergeTasks(categories, remoteData.categories, deletedIdsSet);
+                    Object.assign(categories, mergedCategories);
+                    deletedTasks.length = 0;
+                    Array.prototype.push.apply(deletedTasks, mergedDeletedList);
                     saveCategoriesToLocalStorage();
+                    localStorage.setItem('deletedTasks', JSON.stringify(deletedTasks));
                     renderTasks();
                     localLastSync = remoteMeta.server_modified;
                     localStorage.setItem('lastSync', localLastSync);
-                    console.log('✅ Tareas fusionadas desde Dropbox.');
                     return true;
                 }
             }
