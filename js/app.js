@@ -19,12 +19,23 @@ function obtenerFechaActualParaNombreArchivo() {
 }
 
 
-function addTask(category, task) {
+// Función para generar un ID único
+function generateUUID() {
+    return crypto.randomUUID();
+}
+
+function addTask(category, taskName) {
     if (categories[category]) {
-        categories[category].push({ task, completed: false });
+        const newTask = {
+            id: generateUUID(), // AÑADIDO: ID Único
+            task: taskName,
+            completed: false,
+            lastModified: new Date().toISOString() // AÑADIDO: Timestamp
+        };
+        categories[category].push(newTask);
         saveCategoriesToLocalStorage();
         renderTasks();
-        if (accessToken) syncToDropbox(false); // AÑADIDO: Sincronización automática
+        if (accessToken) syncToDropbox(false);
     } else {
         console.error('Categoría no válida');
     }
@@ -52,7 +63,8 @@ function removeTask(category, taskIndex) {
 function toggleTaskCompletion(category, taskIndex) {
     if (categories[category] && categories[category][taskIndex]) {
         const task = categories[category][taskIndex];
-        task.completed = !task.completed; // Cambia el estado
+        task.completed = !task.completed;
+        task.lastModified = new Date().toISOString(); // ACTUALIZAR TIMESTAMP
 
         // Si se completa una tarea que no está archivada, la archiva
         if (task.completed && category !== 'archivadas') {
@@ -76,10 +88,11 @@ function toggleTaskCompletion(category, taskIndex) {
 function moveTask(currentCategory, taskIndex, newCategory) {
     if (categories[currentCategory] && categories[newCategory]) {
         const task = categories[currentCategory].splice(taskIndex, 1)[0];
+        task.lastModified = new Date().toISOString(); // ACTUALIZAR TIMESTAMP
         categories[newCategory].push(task);
         saveCategoriesToLocalStorage();
         renderTasks();
-        if (accessToken) syncToDropbox(false); // AÑADIDO: Sincronización automática
+        if (accessToken) syncToDropbox(false);
     } else {
         console.error('Categoría no válida');
     }
@@ -169,6 +182,7 @@ function handleAddTask() {
 document.addEventListener('DOMContentLoaded', function() {
     // Cargar tareas al iniciar (solo se necesita llamar una vez)
     loadCategoriesFromLocalStorage();
+    migrateOldTasks(); // AÑADIDO
     renderTasks();
 
     // --- LÓGICA DEL POPUP (SIN DUPLICADOS) ---
@@ -464,7 +478,7 @@ async function syncToDropbox(showAlert = true) { // Añadido parámetro para con
 }
 
 // Cargar tareas desde Dropbox - CON LOGS
-async function syncFromDropbox() {
+async function syncFromDropbox(forceDownload = false) {
     if (!accessToken) {
         console.log('Token no válido para cargar');
         return false;
@@ -669,6 +683,112 @@ function showToast(message, type = 'success') {
             document.body.removeChild(toast);
         }, 500); // Esperar a que la transición de opacidad termine
     }, 3000);
+}
+
+// Migrar tareas antiguas a nuevo formato
+function migrateOldTasks() {
+    let needsSave = false;
+    for (const category in categories) {
+        categories[category].forEach(task => {
+            if (!task.id) {
+                task.id = generateUUID();
+                needsSave = true;
+            }
+            if (!task.lastModified) {
+                task.lastModified = new Date().toISOString();
+                needsSave = true;
+            }
+        });
+    }
+    if (needsSave) {
+        console.log('🔧 Migrando tareas antiguas al nuevo formato.');
+        saveCategoriesToLocalStorage();
+    }
+}
+
+// Llama a la migración cuando se carga la app
+document.addEventListener('DOMContentLoaded', function() {
+    loadCategoriesFromLocalStorage();
+    migrateOldTasks(); // AÑADIDO
+    renderTasks();
+
+    // --- LÓGICA DEL POPUP (SIN DUPLICADOS) ---
+    const popup = document.getElementById('popup-tarea');
+    const abrirPopupBtn = document.getElementById('abrir-popup-tarea');
+    const cancelarPopupBtn = document.getElementById('cancelar-popup');
+    const popupForm = document.getElementById('popup-task-form');
+    const taskNameInput = document.getElementById('popup-task-name');
+    const categorySelect = document.getElementById('popup-task-category');
+
+    // Abrir el popup
+    if (abrirPopupBtn) {
+        abrirPopupBtn.addEventListener('click', function() {
+            popup.style.display = 'flex';
+            taskNameInput.focus();
+        });
+    }
+
+    // Cerrar el popup con el botón Cancelar
+    if (cancelarPopupBtn) {
+        cancelarPopupBtn.addEventListener('click', function() {
+            popup.style.display = 'none';
+        });
+    }
+
+    // Cerrar el popup al hacer clic fuera de él
+    window.addEventListener('click', function(event) {
+        if (event.target == popup) {
+            popup.style.display = 'none';
+        }
+    });
+
+    // Añadir tarea desde el popup
+    if (popupForm) {
+        popupForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const nombre = taskNameInput.value.trim();
+            const categoria = categorySelect.value;
+
+            if (nombre) {
+                addTask(categoria, nombre);
+                taskNameInput.value = ''; // Limpiar el input
+                popup.style.display = 'none'; // Cerrar el popup
+            } else {
+                showToast('Por favor, ingresa un nombre de tarea.', 'error');
+            }
+        });
+    }
+});
+
+// Función para fusionar tareas locales y remotas
+function mergeTasks(localCategories, remoteCategories) {
+    const merged = {};
+    const allCategoryNames = new Set([...Object.keys(localCategories), ...Object.keys(remoteCategories)]);
+
+    for (const categoryName of allCategoryNames) {
+        const localTasks = localCategories[categoryName] || [];
+        const remoteTasks = remoteCategories[categoryName] || [];
+        
+        const tasksById = {};
+
+        // Procesar tareas locales
+        localTasks.forEach(task => {
+            tasksById[task.id] = task;
+        });
+
+        // Procesar tareas remotas y fusionar
+        remoteTasks.forEach(remoteTask => {
+            const localTask = tasksById[remoteTask.id];
+            if (!localTask || new Date(remoteTask.lastModified) > new Date(localTask.lastModified)) {
+                // Si la tarea local no existe, o la remota es más nueva, usar la remota.
+                tasksById[remoteTask.id] = remoteTask;
+            }
+        });
+        
+        merged[categoryName] = Object.values(tasksById);
+    }
+    
+    return merged;
 }
 
 
