@@ -374,7 +374,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Lógica de Dropbox
     document.getElementById('dropbox-login')?.addEventListener('click', () => {
-        const authUrl = `https://www.dropbox.com/oauth2/authorize?client_id=${DROPBOX_APP_KEY}&response_type=token&redirect_uri=${window.location.origin + window.location.pathname}&scope=account_info.read files.content.read files.content.write`;
+        // Usamos una URL fija y absoluta que coincida exactamente con lo registrado en Dropbox
+        const baseUrl = window.location.origin;
+        const cleanPath = window.location.pathname.split('?')[0].split('#')[0]; // Eliminar parámetros y hash
+        let redirectUri;
+        
+        // Si estamos en index.html o en la raíz, usar la URL base
+        if (cleanPath.endsWith('index.html') || cleanPath === '/' || cleanPath === '') {
+            redirectUri = baseUrl + '/';
+        } else {
+            redirectUri = baseUrl + cleanPath;
+        }
+        
+        console.log('🔍 URL de redirección:', redirectUri);
+        
+        const authUrl = `https://www.dropbox.com/oauth2/authorize?client_id=${DROPBOX_APP_KEY}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=account_info.read files.content.read files.content.write`;
+        
         window.location.href = authUrl;
     });
     document.getElementById('dropbox-sync')?.addEventListener('click', performFullSync);
