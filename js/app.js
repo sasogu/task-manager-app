@@ -424,6 +424,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Atajo de teclado para añadir nueva tarea (Ctrl+N o Cmd+N)
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') {
+            e.preventDefault();
+            const popup = document.getElementById('popup-tarea');
+            if (popup) {
+                popup.style.display = 'flex';
+                const input = document.getElementById('popup-task-name');
+                if (input) input.focus();
+            }
+        }
+    });
+
     // Iniciar el flujo de autenticación de Dropbox
     handleAuthCallback();
 });
