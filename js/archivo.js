@@ -5,19 +5,16 @@ document.addEventListener('DOMContentLoaded', function() {
         const allCategories = JSON.parse(localStorage.getItem('categories') || '{}');
         const archivedTasks = allCategories['archivadas'] || [];
         
-        // INVERTIR EL ARRAY PARA MOSTRAR LAS ÚLTIMAS PRIMERO
-        archivedTasks.reverse();
+        archivedTasks.reverse(); // Mostrar las últimas primero
 
-        archiveContainer.innerHTML = ''; // Limpiar vista
+        archiveContainer.innerHTML = '';
 
         if (archivedTasks.length === 0) {
             archiveContainer.innerHTML = '<p>No hay tareas archivadas.</p>';
             return;
         }
 
-        archivedTasks.forEach((taskObj, index) => {
-            // Nota: el 'index' original se pierde, pero no es problema si solo se usa para la key.
-            // Para la eliminación, necesitaremos el ID de la tarea.
+        archivedTasks.forEach(taskObj => {
             const taskDiv = document.createElement('div');
             taskDiv.className = 'task';
             taskDiv.innerHTML = `
@@ -29,16 +26,29 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // FUNCIÓN DE ELIMINACIÓN CORREGIDA
     window.deletePermanently = function(taskId) {
         if (confirm('¿Estás seguro de que quieres eliminar esta tarea permanentemente? Esta acción no se puede deshacer.')) {
+            // Cargar ambos, categorías y tareas eliminadas
             const allCategories = JSON.parse(localStorage.getItem('categories') || '{}');
+            const deletedTasks = JSON.parse(localStorage.getItem('deletedTasks') || '[]');
+
             if (allCategories['archivadas']) {
-                // Buscar y eliminar por ID en lugar de por índice
                 const taskIndex = allCategories['archivadas'].findIndex(t => t.id === taskId);
+                
                 if (taskIndex > -1) {
-                    allCategories['archivadas'].splice(taskIndex, 1);
+                    // 1. Eliminar la tarea de la lista de archivadas
+                    const [removedTask] = allCategories['archivadas'].splice(taskIndex, 1);
+                    
+                    // 2. AÑADIR LA TAREA A LA LISTA DE ELIMINADAS (¡LA CLAVE!)
+                    deletedTasks.push({ ...removedTask, deletedOn: new Date().toISOString() });
+
+                    // 3. Guardar ambos cambios en localStorage
                     localStorage.setItem('categories', JSON.stringify(allCategories));
-                    renderArchivedTasks(); // Volver a renderizar la lista
+                    localStorage.setItem('deletedTasks', JSON.stringify(deletedTasks));
+                    
+                    // 4. Volver a renderizar la vista
+                    renderArchivedTasks();
                 }
             }
         }
