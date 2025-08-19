@@ -215,6 +215,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const DROPBOX_APP_KEY = 'f21fzdjtng58vcg';
     let accessToken = localStorage.getItem('dropbox_access_token');
 
+    // Debug del estado de conexión
+    function logDropboxStatus() {
+        console.log('=== ESTADO DROPBOX ===');
+        console.log('Token existe:', !!accessToken);
+        console.log('Botones existentes:', {
+            login: !!document.getElementById('dropbox-login'),
+            sync: !!document.getElementById('dropbox-sync'),
+            logout: !!document.getElementById('dropbox-logout')
+        });
+        console.log('=====================');
+    }
+
     // Actualizar botones según estado
     function updateDropboxButtons() {
         const loginBtn = document.getElementById('dropbox-login');
@@ -230,6 +242,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (syncBtn) syncBtn.style.display = 'none';
             if (logoutBtn) logoutBtn.style.display = 'none';
         }
+        
+        logDropboxStatus(); // Debug
     }
 
     // Login con Dropbox
@@ -431,6 +445,23 @@ document.addEventListener('DOMContentLoaded', function() {
     clearBtn.onclick = clearAllData;
     clearBtn.style.cssText = 'position:fixed; top:10px; right:10px; z-index:9999; background:red; color:white;';
     document.body.appendChild(clearBtn);
+
+    // Botón para limpiar datos (temporal para debug)
+    const clearDataBtn = document.getElementById('clear-data-btn');
+    if (clearDataBtn) {
+        clearDataBtn.addEventListener('click', function() {
+            if (confirm('¿Borrar todos los datos locales y cache?')) {
+                localStorage.clear();
+                if ('caches' in window) {
+                    caches.keys().then(cacheNames => {
+                        cacheNames.forEach(cacheName => caches.delete(cacheName));
+                    });
+                }
+                alert('Datos borrados. Recargando página...');
+                location.reload();
+            }
+        });
+    }
 });
 
 // Función para obtener las tareas desde localStorage
