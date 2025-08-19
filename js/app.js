@@ -341,7 +341,7 @@ document.addEventListener('DOMContentLoaded', function() {
         showToast('Desconectado de Dropbox');
     });
 
-    // Lógica de Backup/Restore y Limpieza (RESTAURADA)
+    // Lógica de Backup/Restore y Limpieza (RESTAURADA Y CORREGIDA)
     document.getElementById('backup-btn')?.addEventListener('click', function() {
         const backupData = { fecha: new Date().toISOString(), categories: categories, deletedTasks: deletedTasks };
         const blob = new Blob([JSON.stringify(backupData, null, 2)], {type: 'application/json'});
@@ -364,12 +364,25 @@ document.addEventListener('DOMContentLoaded', function() {
         reader.onload = function(e) {
             try {
                 const json = JSON.parse(e.target.result);
-                if (!json.categories || typeof json.categories !== 'object') throw new Error('Formato de backup no válido');
-                Object.keys(categories).forEach(cat => delete categories[cat]);
+                if (!json.categories || typeof json.categories !== 'object') {
+                    throw new Error('Formato de backup no válido. Falta la propiedad "categories".');
+                }
+
+                // 1. Restaurar las categorías
+                Object.keys(categories).forEach(cat => categories[cat] = []); // Limpia el objeto actual
                 Object.assign(categories, json.categories);
                 saveCategoriesToLocalStorage();
+
+                // 2. RESTAURAR TAMBIÉN LAS TAREAS ELIMINADAS (¡LA CLAVE!)
+                const backupDeletedTasks = json.deletedTasks || [];
+                deletedTasks.length = 0; // Limpiar la lista global actual
+                Array.prototype.push.apply(deletedTasks, backupDeletedTasks); // Cargar las del backup
+                localStorage.setItem('deletedTasks', JSON.stringify(deletedTasks));
+
+                // 3. Actualizar la interfaz
                 renderTasks();
                 showToast('Tareas restauradas correctamente.');
+
             } catch (err) {
                 showToast('Error al importar: ' + err.message, 'error');
             }
