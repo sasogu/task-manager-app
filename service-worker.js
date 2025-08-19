@@ -1,4 +1,4 @@
-const CACHE_NAME = 'task-manager-cache-v1.0.51';
+const CACHE_NAME = 'task-manager-cache-v1.0.52';
 const urlsToCache = [
   'https://sasogu.github.io/task-manager-app/',
   'https://sasogu.github.io/task-manager-app/index.html',
@@ -14,10 +14,36 @@ self.addEventListener('install', event => {
   );
 });
 
+// REEMPLAZA EL ANTIGUO 'fetch' LISTENER POR ESTE:
 self.addEventListener('fetch', event => {
+  // Ignorar peticiones que no son GET (como POST a Dropbox)
+  if (event.request.method !== 'GET') {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // Ignorar peticiones a dominios externos (como la API de Dropbox)
+  if (!event.request.url.startsWith(self.location.origin)) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // Para las peticiones GET a nuestros propios archivos, usar estrategia de caché
   event.respondWith(
-    caches.match(event.request)
-      .then(response => response || fetch(event.request))
+    caches.match(event.request).then(cachedResponse => {
+      // Si está en caché, devolverlo
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+      // Si no, ir a la red
+      return fetch(event.request).then(networkResponse => {
+        // Y guardar la nueva respuesta en caché para la próxima vez
+        return caches.open(CACHE_NAME).then(cache => {
+          cache.put(event.request, networkResponse.clone());
+          return networkResponse;
+        });
+      });
+    })
   );
 });
 
