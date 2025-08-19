@@ -406,16 +406,19 @@ document.addEventListener('DOMContentLoaded', function() {
     // Lógica de Backup/Restore y Limpieza
     // ... (Aquí irían los listeners para backup-btn, restore-btn, etc., que ya tenías)
 
-    document.getElementById('clear-data-btn')?.addEventListener('click', function() {
-        if (confirm('¿Borrar todos los datos locales y cache?')) {
-            localStorage.clear();
-            if ('caches' in window) {
-                caches.keys().then(keys => keys.forEach(key => caches.delete(key)));
+    const clearBtn = document.getElementById('clear-data-btn');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+            if (confirm('¿Borrar todos los datos locales y cache?')) {
+                localStorage.clear();
+                if ('caches' in window) {
+                    caches.keys().then(keys => keys.forEach(key => caches.delete(key)));
+                }
+                showToast('Datos borrados. La página se recargará.');
+                setTimeout(() => location.reload(), 1000);
             }
-            showToast('Datos borrados. La página se recargará.');
-            setTimeout(() => location.reload(), 1000);
-        }
-    });
+        });
+    }
 
     // Iniciar el flujo de autenticación de Dropbox
     handleAuthCallback();
