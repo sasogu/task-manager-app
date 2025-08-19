@@ -24,7 +24,6 @@ function addTask(category, task) {
         categories[category].push({ task, completed: false });
         saveCategoriesToLocalStorage();
         renderTasks();
-        syncToDropbox(); // Sincronizar automáticamente
     } else {
         console.error('Categoría no válida');
     }
@@ -252,7 +251,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const data = {
             categories: categories,
-            deletedTasks: deletedTasks,
+            deletedTasks: JSON.parse(localStorage.getItem('deletedTasks') || '[]'),
             lastSync: new Date().toISOString()
         };
         
@@ -264,7 +263,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     'Content-Type': 'application/octet-stream',
                     'Dropbox-API-Arg': JSON.stringify({
                         path: '/tareas.json',
-                        mode: 'overwrite'
+                        mode: 'overwrite',
+                        autorename: false
                     })
                 },
                 body: JSON.stringify(data, null, 2)
@@ -272,9 +272,17 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (response.ok) {
                 console.log('Tareas guardadas en Dropbox');
-                alert('Tareas sincronizadas con Dropbox');
+                // alert('Tareas sincronizadas con Dropbox'); // Comenta esto para que no sea molesto
             } else {
-                console.error('Error al guardar en Dropbox:', response.status);
+                const errorText = await response.text();
+                console.error('Error al guardar en Dropbox:', response.status, errorText);
+                
+                // Si el token ha expirado, limpiar
+                if (response.status === 401) {
+                    localStorage.removeItem('dropbox_access_token');
+                    accessToken = null;
+                    updateDropboxButtons();
+                }
             }
         } catch (error) {
             console.error('Error al sincronizar:', error);
