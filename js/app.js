@@ -51,18 +51,23 @@ function removeTask(category, taskIndex) {
 
 function toggleTaskCompletion(category, taskIndex) {
     if (categories[category] && categories[category][taskIndex]) {
-        // Si la tarea no está en archivadas y se marca como completada, archívala
-        if (category !== 'archivadas' && !categories[category][taskIndex].completed) {
-            categories[category][taskIndex].completed = true;
-            const task = categories[category].splice(taskIndex, 1)[0];
-            categories['archivadas'].push(task);
-        } else if (category === 'archivadas') {
-            // Si está en archivadas, solo cambia el estado completado
-            categories[category][taskIndex].completed = !categories[category][taskIndex].completed;
+        const task = categories[category][taskIndex];
+        task.completed = !task.completed; // Cambia el estado
+
+        // Si se completa una tarea que no está archivada, la archiva
+        if (task.completed && category !== 'archivadas') {
+            const movedTask = categories[category].splice(taskIndex, 1)[0];
+            categories['archivadas'].push(movedTask);
+        } 
+        // Si se desmarca una tarea que está en archivadas, la devuelve a la bandeja de entrada
+        else if (!task.completed && category === 'archivadas') {
+            const movedTask = categories[category].splice(taskIndex, 1)[0];
+            categories['bandeja-de-entrada'].push(movedTask);
         }
+
         saveCategoriesToLocalStorage();
         renderTasks();
-        if (accessToken) syncToDropbox(false); // AÑADIDO: Sincronización automática
+        if (accessToken) syncToDropbox(false);
     } else {
         console.error('Categoría o tarea no válida');
     }
@@ -137,85 +142,79 @@ function loadCategoriesFromLocalStorage() {
     }
 }
 
-// Llamar a la función de carga al inicio
-loadCategoriesFromLocalStorage();
-renderTasks();
+// ELIMINA ESTAS DOS LÍNEAS
+// loadCategoriesFromLocalStorage();
+// renderTasks();
 
+// ELIMINA TODA ESTA FUNCIÓN
+/*
 function handleAddTask() {
     const taskNameInput = document.getElementById('task-name');
     const taskCategorySelect = document.getElementById('task-category');
 
     const taskName = taskNameInput.value.trim();
-    const taskCategory = taskCategorySelect.value || 'bandeja-de-entrada'; // Usar 'bandeja-de-entrada' como categoría predeterminada
+    const taskCategory = taskCategorySelect.value || 'bandeja-de-entrada';
 
     if (taskName) {
         addTask(taskCategory, taskName);
-        taskNameInput.value = ''; // Limpiar el campo de texto
-        taskCategorySelect.value = ''; // Reiniciar el menú desplegable
+        taskNameInput.value = '';
+        taskCategorySelect.value = '';
     } else {
-        showToast('Por favor, ingresa un nombre de tarea.', 'error'); // REEMPLAZADO
+        showToast('Por favor, ingresa un nombre de tarea.', 'error');
     }
 }
+*/
 
 // Añadir soporte para enviar el formulario con Enter y enfocar el input principal
 document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('task-form');
-    const taskNameInput = document.getElementById('task-name');
-    if (taskNameInput) {
-        setTimeout(() => {
+    // Cargar tareas al iniciar (solo se necesita llamar una vez)
+    loadCategoriesFromLocalStorage();
+    renderTasks();
+
+    // --- LÓGICA DEL POPUP (SIN DUPLICADOS) ---
+    const popup = document.getElementById('popup-tarea');
+    const abrirPopupBtn = document.getElementById('abrir-popup-tarea');
+    const cancelarPopupBtn = document.getElementById('cancelar-popup');
+    const popupForm = document.getElementById('popup-task-form');
+    const taskNameInput = document.getElementById('popup-task-name');
+    const categorySelect = document.getElementById('popup-task-category');
+
+    // Abrir el popup
+    if (abrirPopupBtn) {
+        abrirPopupBtn.addEventListener('click', function() {
+            popup.style.display = 'flex';
             taskNameInput.focus();
-            taskNameInput.select();
-        }, 300);
-    }
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            handleAddTask();
         });
     }
 
-    // --- POPUP ---
-    const popup = document.getElementById('popup-tarea');
-    const popupForm = document.getElementById('popup-task-form');
-    const popupInput = document.getElementById('popup-task-name');
-    const popupCategory = document.getElementById('popup-task-category');
-    const cancelarBtn = document.getElementById('cancelar-popup');
+    // Cerrar el popup con el botón Cancelar
+    if (cancelarPopupBtn) {
+        cancelarPopupBtn.addEventListener('click', function() {
+            popup.style.display = 'none';
+        });
+    }
 
-    // Quita o comenta esta parte para NO mostrar el popup al iniciar
-    // if (popup) {
-    //     popup.style.display = 'flex';
-    //     setTimeout(() => { popupInput && popupInput.focus(); }, 200);
-    // }
+    // Cerrar el popup al hacer clic fuera de él
+    window.addEventListener('click', function(event) {
+        if (event.target == popup) {
+            popup.style.display = 'none';
+        }
+    });
 
     // Añadir tarea desde el popup
     if (popupForm) {
         popupForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            const nombre = popupInput.value.trim();
-            const categoria = popupCategory.value || 'bandeja-de-entrada';
+            const nombre = taskNameInput.value.trim();
+            const categoria = categorySelect.value;
+
             if (nombre) {
                 addTask(categoria, nombre);
-                popupInput.value = '';
-                popup.style.display = 'none';
+                taskNameInput.value = ''; // Limpiar el input
+                popup.style.display = 'none'; // Cerrar el popup
             } else {
-                showToast('Por favor, ingresa un nombre de tarea.', 'error'); // REEMPLAZADO
+                showToast('Por favor, ingresa un nombre de tarea.', 'error');
             }
-        });
-    }
-
-    // Cancelar y cerrar el popup
-    if (cancelarBtn) {
-        cancelarBtn.addEventListener('click', function() {
-            popup.style.display = 'none';
-        });
-    }
-
-    // Botón para abrir el popup de nueva tarea
-    const abrirPopupBtn = document.getElementById('abrir-popup-tarea');
-    if (abrirPopupBtn && popup) {
-        abrirPopupBtn.addEventListener('click', function() {
-            popup.style.display = 'flex';
-            setTimeout(() => { popupInput && popupInput.focus(); }, 200);
         });
     }
 });
