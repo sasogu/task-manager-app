@@ -426,7 +426,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Atajo de teclado para añadir nueva tarea (Ctrl+N o Cmd+N)
     document.addEventListener('keydown', function(e) {
-        if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'n') {
+        // Solo activar si NO estamos en un input, textarea o select
+        const tag = document.activeElement.tagName.toLowerCase();
+        if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+
+        // Atajo: Alt+N (menos conflictivo y funciona en ambos navegadores)
+        if (e.altKey && e.key.toLowerCase() === 'n') {
             e.preventDefault();
             const popup = document.getElementById('popup-tarea');
             if (popup) {
