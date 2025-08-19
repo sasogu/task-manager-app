@@ -104,15 +104,18 @@ function moveTask(taskId, newCategory) {
     }
 }
 
-// --- RENDERIZADO EN EL DOM (CORREGIDO CON IDs) ---
+// --- RENDERIZADO EN EL DOM (SIN BOTÓN DE ELIMINAR) ---
 function renderTasks() {
     const taskContainer = document.getElementById('task-container');
     taskContainer.innerHTML = '';
     const categoryNames = { "bandeja-de-entrada": "Bandeja de Entrada", "prioritaria": "Prioritaria", "proximas": "Próximas", "algun-dia": "Algún Día" };
+
     for (const [category, tasks] of Object.entries(categories)) {
         if (category === 'archivadas') continue;
         const categoryDiv = document.createElement('div');
         categoryDiv.className = 'category';
+        
+        // Se ha eliminado el botón de la papelera de esta plantilla
         let tasksHTML = tasks.map(task => `
             <div class="task ${task.completed ? 'completed' : ''}">
                 <input type="checkbox" onchange="toggleTaskCompletion('${task.id}')" ${task.completed ? 'checked' : ''}>
@@ -121,8 +124,9 @@ function renderTasks() {
                     <option value="" disabled selected>Mover</option>
                     ${Object.keys(categoryNames).filter(c => c !== category).map(c => `<option value="${c}">${categoryNames[c]}</option>`).join('')}
                 </select>
-                <button class="delete-btn" onclick="removeTask('${task.id}')">🗑️</button>
-            </div>`).join('');
+            </div>
+        `).join('');
+
         categoryDiv.innerHTML = `<h3>${categoryNames[category]}</h3><div class="task-list">${tasksHTML}</div>`;
         taskContainer.appendChild(categoryDiv);
     }
