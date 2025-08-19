@@ -181,19 +181,43 @@ async function validateToken() {
     }
 }
 
-function mergeTasks(local, remote) {
-    const merged = {};
-    const allCats = new Set([...Object.keys(local), ...Object.keys(remote)]);
-    allCats.forEach(cat => {
-        const tasksById = new Map();
-        (local[cat] || []).forEach(t => tasksById.set(t.id, t));
-        (remote[cat] || []).forEach(r => {
-            const l = tasksById.get(r.id);
-            if (!l || new Date(r.lastModified) > new Date(l.lastModified)) tasksById.set(r.id, r);
-        });
-        merged[cat] = Array.from(tasksById.values());
-    });
-    return merged;
+// FUNCIÓN DE FUSIÓN CORREGIDA Y MÁS ROBUSTA
+function mergeTasks(localCategories, remoteCategories) {
+    const tasksById = new Map();
+
+    // 1. Poner TODAS las tareas (locales y remotas) en un solo mapa,
+    //    quedándose siempre con la versión que tenga el timestamp más reciente.
+    const processCategory = (categoriesObject) => {
+        for (const categoryName in categoriesObject) {
+            for (const task of categoriesObject[categoryName]) {
+                const existing = tasksById.get(task.id);
+                if (!existing || new Date(task.lastModified) > new Date(existing.lastModified)) {
+                    // Guardamos la tarea Y la categoría a la que pertenece
+                    tasksById.set(task.id, { ...task, category: categoryName });
+                }
+            }
+        }
+    };
+
+    processCategory(localCategories);
+    processCategory(remoteCategories);
+
+    // 2. Ahora que tenemos la lista definitiva de tareas ganadoras,
+    //    reconstruimos el objeto de categorías desde cero.
+    const mergedCategories = {
+        "bandeja-de-entrada": [], "prioritaria": [], "proximas": [], "algun-dia": [], "archivadas": []
+    };
+
+    for (const task of tasksById.values()) {
+        // Si la categoría de la tarea ganadora existe, la colocamos allí.
+        if (mergedCategories[task.category]) {
+            // Quitamos la propiedad 'category' que era temporal
+            const { category, ...finalTask } = task;
+            mergedCategories[category].push(finalTask);
+        }
+    }
+
+    return mergedCategories;
 }
 
 async function syncToDropbox(showAlert = true) {
