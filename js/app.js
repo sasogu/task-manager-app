@@ -398,8 +398,8 @@ if (dropboxLoginBtn) {
         localStorage.removeItem('dropbox_access_token');
         accessToken = null;
         
-        // URL de autorización con todos los scopes necesarios
-        const authUrl = `https://www.dropbox.com/oauth2/authorize?client_id=${DROPBOX_APP_KEY}&response_type=token&redirect_uri=https://sasogu.github.io/task-manager-app/&scope=files.content.read files.content.write files.metadata.read`;
+        // URL de autorización con TODOS los scopes necesarios
+        const authUrl = `https://www.dropbox.com/oauth2/authorize?client_id=${DROPBOX_APP_KEY}&response_type=token&redirect_uri=https://sasogu.github.io/task-manager-app/&scope=account_info.read files.content.read files.content.write files.metadata.read`;
         
         console.log('🌐 Redirigiendo a:', authUrl);
         window.location.href = authUrl;
