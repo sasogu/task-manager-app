@@ -1,7 +1,7 @@
 {
   "name": "Gestor de Tareas",
   "short_name": "TareasGT",
-  "start_url": "/task-manager-app/index.html",
+  "start_url": "https://sasogu.github.io/task-manager-app/",
   "display": "standalone",
   "background_color": "#35424a",
   "theme_color": "#35424a",

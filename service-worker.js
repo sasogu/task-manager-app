@@ -1,10 +1,10 @@
-const CACHE_NAME = 'task-manager-cache-v1.0.21';
+const CACHE_NAME = 'task-manager-cache-v1.0.23';
 const urlsToCache = [
-  '/task-manager-app/',
-  '/task-manager-app/index.html',
-  '/task-manager-app/css/styles.css',
-  '/task-manager-app/js/app.js',
-  // Añade aquí otros archivos que quieras cachear
+  'https://sasogu.github.io/task-manager-app/',
+  'https://sasogu.github.io/task-manager-app/index.html',
+  'https://sasogu.github.io/task-manager-app/css/styles.css',
+  'https://sasogu.github.io/task-manager-app/js/app.js',
+  'https://sasogu.github.io/task-manager-app/manifest.json'
 ];
 
 self.addEventListener('install', event => {
