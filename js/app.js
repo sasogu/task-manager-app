@@ -515,6 +515,59 @@ document.addEventListener('DOMContentLoaded', function() {
         
         console.log('💡 Ejecuta testDropboxConnection() en consola para probar el token');
     });
+
+    // Función para verificar qué permisos tiene el token actual
+    window.checkTokenScopes = async function() {
+        const token = localStorage.getItem('dropbox_access_token');
+        if (!token) {
+            console.log('❌ No hay token');
+            return;
+        }
+        
+        console.log('🔍 Verificando scopes del token...');
+        
+        try {
+            const response = await fetch('https://api.dropboxapi.com/2/check/user', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    query: 'test'
+                })
+            });
+            
+            console.log('Status:', response.status);
+            const data = await response.json();
+            console.log('Respuesta completa:', data);
+            
+        } catch (error) {
+            console.log('Error al verificar scopes:', error);
+        }
+    };
+
+    // También añade esto para ver exactamente qué error devuelve Dropbox
+    window.testBasicAuth = async function() {
+        const token = localStorage.getItem('dropbox_access_token');
+        
+        try {
+            const response = await fetch('https://api.dropboxapi.com/2/users/get_current_account', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            console.log('Status:', response.status);
+            const text = await response.text();
+            console.log('Respuesta:', text);
+            
+        } catch (error) {
+            console.log('Error:', error);
+        }
+    };
 });
 
 // Función para obtener las tareas desde localStorage
