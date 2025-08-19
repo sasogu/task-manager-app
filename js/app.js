@@ -347,11 +347,14 @@ function updateDropboxButtons() {
     logDropboxStatus(); // Debug
 }
 
-// Verificar si el token es válido
+// Verificar si el token es válido - VERSIÓN MEJORADA
 async function validateToken() {
     if (!accessToken) return false;
     
     try {
+        // Añadir un pequeño delay para asegurar que el token esté listo
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
         const response = await fetch('https://api.dropboxapi.com/2/users/get_current_account', {
             method: 'POST',
             headers: {
@@ -360,17 +363,27 @@ async function validateToken() {
             }
         });
         
+        console.log('🧪 Status de validación:', response.status);
+        
         if (response.ok) {
+            const userData = await response.json();
+            console.log('✅ Token válido para usuario:', userData.name.display_name);
             return true;
         } else {
-            // Token inválido, limpiar
-            localStorage.removeItem('dropbox_access_token');
-            accessToken = null;
-            updateDropboxButtons();
+            const errorData = await response.text();
+            console.log('❌ Token inválido:', response.status, errorData);
+            
+            // Solo limpiar si es realmente un error de autorización persistente
+            if (response.status === 401) {
+                console.log('🗑️ Limpiando token por error 401');
+                localStorage.removeItem('dropbox_access_token');
+                accessToken = null;
+                updateDropboxButtons();
+            }
             return false;
         }
     } catch (error) {
-        console.error('Error validando token:', error);
+        console.error('💥 Error de red al validar token:', error);
         return false;
     }
 }
@@ -497,7 +510,7 @@ if (dropboxLogoutBtn) {
     });
 }
 
-// Verificar token al cargar
+// Verificar token al cargar - VERSIÓN MEJORADA
 function handleAuthCallback() {
     // Verificar tanto en hash como en query params
     const hash = window.location.hash.substring(1);
@@ -533,22 +546,25 @@ function handleAuthCallback() {
         updateDropboxButtons();
         alert('✅ Conectado con Dropbox correctamente');
         
-        // Intentar sincronizar
+        // Intentar sincronizar con más delay
         setTimeout(() => {
             console.log('🔄 Intentando primera sincronización...');
             syncFromDropbox();
-        }, 1000);
+        }, 2000); // Aumentado a 2 segundos
     } else {
         updateDropboxButtons();
         if (accessToken) {
             console.log('🔄 Token existente encontrado, validando...');
-            validateToken().then(valid => {
-                if (valid) {
-                    syncFromDropbox();
-                } else {
-                    console.log('❌ Token existente no válido');
-                }
-            });
+            // Validar con delay
+            setTimeout(() => {
+                validateToken().then(valid => {
+                    if (valid) {
+                        syncFromDropbox();
+                    } else {
+                        console.log('❌ Token existente no válido');
+                    }
+                });
+            }, 1000);
         }
     }
 }
