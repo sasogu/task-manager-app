@@ -10,10 +10,24 @@ header {
     color: #ffffff;
     padding: 10px 0;
     text-align: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 25px;
+    border-bottom: 2px solid #e8491d;
 }
 
 h1 {
     margin: 0;
+}
+
+header h1 {
+    margin: 0;
+}
+
+header .acciones {
+    display: flex;
+    gap: 15px; /* Espacio entre los botones */
 }
 
 .container {
@@ -99,6 +113,38 @@ footer {
     margin-bottom: 12px;
     width: 100%;
     max-width: 350px;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 16px;
+    display: inline-flex; /* Para alinear el icono y el texto */
+    align-items: center;
+    gap: 8px; /* Espacio entre icono y texto */
+    border: 1px solid transparent;
+}
+
+/* Estilo para el botón de acción principal */
+.boton-primario {
+    background-color: #e8491d;
+    color: white;
+}
+.boton-primario:hover {
+    background-color: #d73a0c;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Estilo para el botón de acción secundario */
+.boton-secundario {
+    background-color: #f4f4f4;
+    color: #333;
+    border-color: #ddd;
+}
+.boton-secundario:hover {
+    background-color: #e9e9e9;
+    border-color: #ccc;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
 /* Para los botones de copia de seguridad */

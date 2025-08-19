@@ -1,9 +1,11 @@
-const CACHE_NAME = 'task-manager-cache-v1.0.52';
+const CACHE_NAME = 'task-manager-cache-v1.0.54'; // Versión incrementada
 const urlsToCache = [
   'https://sasogu.github.io/task-manager-app/',
   'https://sasogu.github.io/task-manager-app/index.html',
+  'https://sasogu.github.io/task-manager-app/archivo.html', // AÑADIDO
   'https://sasogu.github.io/task-manager-app/css/styles.css',
   'https://sasogu.github.io/task-manager-app/js/app.js',
+  'https://sasogu.github.io/task-manager-app/js/archivo.js', // AÑADIDO
   'https://sasogu.github.io/task-manager-app/manifest.json'
 ];
 
