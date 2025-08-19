@@ -408,10 +408,16 @@ if (dropboxLoginBtn) {
 
 // Guardar tareas en Dropbox
 async function syncToDropbox() {
-    if (!accessToken || !(await validateToken())) {
-        console.log('Token no válido o no disponible');
+    if (!accessToken) {
+        console.log('No hay token');
         return;
     }
+    
+    // COMENTAR ESTAS LÍNEAS:
+    // if (!accessToken || !(await validateToken())) {
+    //     console.log('Token no válido o no disponible');
+    //     return;
+    // }
     
     const data = {
         categories: categories,
@@ -449,12 +455,18 @@ async function syncToDropbox() {
     }
 }
 
-// Cargar tareas desde Dropbox
+// Cargar tareas desde Dropbox - SIN VALIDACIÓN
 async function syncFromDropbox() {
-    if (!accessToken || !(await validateToken())) {
-        console.log('Token no válido para cargar');
+    if (!accessToken) {
+        console.log('No hay token');
         return;
     }
+    
+    // COMENTAR ESTAS LÍNEAS:
+    // if (!accessToken || !(await validateToken())) {
+    //     console.log('Token no válido para cargar');
+    //     return;
+    // }
     
     try {
         const response = await fetch('https://content.dropboxapi.com/2/files/download', {

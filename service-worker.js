@@ -1,4 +1,4 @@
-const CACHE_NAME = 'task-manager-cache-v1.0.45';
+const CACHE_NAME = 'task-manager-cache-v1.0.46';
 const urlsToCache = [
   'https://sasogu.github.io/task-manager-app/',
   'https://sasogu.github.io/task-manager-app/index.html',
