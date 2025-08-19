@@ -424,6 +424,13 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(() => syncToDropbox(), 500);
         }
     };
+
+    // Botón temporal para debug/limpieza
+    const clearBtn = document.createElement('button');
+    clearBtn.textContent = 'Limpiar datos';
+    clearBtn.onclick = clearAllData;
+    clearBtn.style.cssText = 'position:fixed; top:10px; right:10px; z-index:9999; background:red; color:white;';
+    document.body.appendChild(clearBtn);
 });
 
 // Función para obtener las tareas desde localStorage
@@ -525,6 +532,21 @@ document.getElementById('export-deleted-btn').addEventListener('click', function
     a.click();
     URL.revokeObjectURL(url);
 });
+
+// Función para limpiar datos
+function clearAllData() {
+    if (confirm('¿Estás seguro de que quieres borrar todos los datos locales?')) {
+        localStorage.clear();
+        
+        // También limpiar el cache del Service Worker
+        if ('caches' in window) {
+            caches.delete('task-manager-cache-v1.0.35');
+        }
+        
+        alert('Datos borrados. La página se recargará.');
+        location.reload();
+    }
+}
 
 
 
