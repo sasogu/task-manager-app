@@ -24,6 +24,7 @@ function addTask(category, task) {
         categories[category].push({ task, completed: false });
         saveCategoriesToLocalStorage();
         renderTasks();
+        if (accessToken) syncToDropbox(false); // AÑADIDO: Sincronización automática
     } else {
         console.error('Categoría no válida');
     }
@@ -42,6 +43,7 @@ function removeTask(category, taskIndex) {
         }
         saveCategoriesToLocalStorage();
         renderTasks();
+        if (accessToken) syncToDropbox(false); // AÑADIDO: Sincronización automática
     } else {
         console.error('Categoría no válida');
     }
@@ -60,6 +62,7 @@ function toggleTaskCompletion(category, taskIndex) {
         }
         saveCategoriesToLocalStorage();
         renderTasks();
+        if (accessToken) syncToDropbox(false); // AÑADIDO: Sincronización automática
     } else {
         console.error('Categoría o tarea no válida');
     }
@@ -71,6 +74,7 @@ function moveTask(currentCategory, taskIndex, newCategory) {
         categories[newCategory].push(task);
         saveCategoriesToLocalStorage();
         renderTasks();
+        if (accessToken) syncToDropbox(false); // AÑADIDO: Sincronización automática
     } else {
         console.error('Categoría no válida');
     }
@@ -85,10 +89,15 @@ function renderTasks() {
         "prioritaria": "Prioritaria",
         "proximas": "Próximas",
         "algun-dia": "Algún Día",
-        "archivadas": "Archivadas"
+        // "archivadas" ya no se renderiza aquí
     };
 
     for (const [category, tasks] of Object.entries(categories)) {
+        // AÑADE ESTA CONDICIÓN PARA SALTAR LAS ARCHIVADAS
+        if (category === 'archivadas') {
+            continue;
+        }
+
         const categoryDiv = document.createElement('div');
         categoryDiv.className = 'category';
         categoryDiv.innerHTML = `<h3>${categoryNames[category]}</h3>`;
@@ -144,7 +153,7 @@ function handleAddTask() {
         taskNameInput.value = ''; // Limpiar el campo de texto
         taskCategorySelect.value = ''; // Reiniciar el menú desplegable
     } else {
-        alert('Por favor, ingresa un nombre de tarea.');
+        showToast('Por favor, ingresa un nombre de tarea.', 'error'); // REEMPLAZADO
     }
 }
 
@@ -189,7 +198,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 popupInput.value = '';
                 popup.style.display = 'none';
             } else {
-                alert('Por favor, ingresa un nombre de tarea.');
+                showToast('Por favor, ingresa un nombre de tarea.', 'error'); // REEMPLAZADO
             }
         });
     }
@@ -271,9 +280,9 @@ document.getElementById('restore-file').addEventListener('change', function(even
             saveCategoriesToLocalStorage(); // Guarda en localStorage
             renderTasks(); // Vuelve a renderizar en pantalla
 
-            alert('Tareas restauradas correctamente.');
+            showToast('Tareas restauradas correctamente.'); // REEMPLAZADO
         } catch (err) {
-            alert('Error al importar: ' + err.message);
+            showToast('Error al importar: ' + err.message, 'error'); // REEMPLAZADO
         }
     };
     reader.readAsText(file);
@@ -283,7 +292,7 @@ document.getElementById('restore-file').addEventListener('change', function(even
 document.getElementById('export-deleted-btn').addEventListener('click', function() {
     const deleted = JSON.parse(localStorage.getItem('deletedTasks') || '[]');
     if (deleted.length === 0) {
-        alert('No hay tareas eliminadas para exportar.');
+        showToast('No hay tareas eliminadas para exportar.', 'error'); // REEMPLAZADO
         return;
     }
 
@@ -601,8 +610,8 @@ if (clearDataBtn) {
                     cacheNames.forEach(cacheName => caches.delete(cacheName));
                 });
             }
-            alert('Datos borrados. Recargando página...');
-            location.reload();
+            showToast('Datos borrados. La página se recargará.'); // REEMPLAZADO
+            setTimeout(() => location.reload(), 1000); // Pequeño delay para que se vea el toast
         }
     });
 }
