@@ -408,24 +408,20 @@ if (dropboxLoginBtn) {
     });
 }
 
-// Guardar tareas en Dropbox
-async function syncToDropbox() {
+// Guardar tareas en Dropbox - CON LOGS
+async function syncToDropbox(showAlert = true) { // Añadido parámetro para controlar la alerta
     if (!accessToken) {
-        console.log('No hay token');
-        return;
+        console.log('Token no válido o no disponible');
+        return false;
     }
-    
-    // COMENTAR ESTAS LÍNEAS:
-    // if (!accessToken || !(await validateToken())) {
-    //     console.log('Token no válido o no disponible');
-    //     return;
-    // }
     
     const data = {
         categories: categories,
         deletedTasks: JSON.parse(localStorage.getItem('deletedTasks') || '[]'),
         lastSync: new Date().toISOString()
     };
+    
+    console.log('⬆️  Enviando a Dropbox:', data); // LOG DE DATOS ENVIADOS
     
     try {
         const response = await fetch('https://content.dropboxapi.com/2/files/upload', {
@@ -444,7 +440,9 @@ async function syncToDropbox() {
         
         if (response.ok) {
             console.log('✅ Tareas guardadas en Dropbox');
-            alert('✅ Tareas sincronizadas correctamente');
+            if (showAlert) { // Mostrar alerta solo si se indica
+                alert('✅ Tareas sincronizadas correctamente');
+            }
             return true;
         } else {
             const errorData = await response.json();
@@ -457,18 +455,12 @@ async function syncToDropbox() {
     }
 }
 
-// Cargar tareas desde Dropbox - SIN VALIDACIÓN
+// Cargar tareas desde Dropbox - CON LOGS
 async function syncFromDropbox() {
     if (!accessToken) {
-        console.log('No hay token');
-        return;
+        console.log('Token no válido para cargar');
+        return false;
     }
-    
-    // COMENTAR ESTAS LÍNEAS:
-    // if (!accessToken || !(await validateToken())) {
-    //     console.log('Token no válido para cargar');
-    //     return;
-    // }
     
     try {
         const response = await fetch('https://content.dropboxapi.com/2/files/download', {
@@ -482,15 +474,22 @@ async function syncFromDropbox() {
         if (response.ok) {
             const text = await response.text();
             const data = JSON.parse(text);
-            if (data.categories) {
-                Object.assign(categories, data.categories);
+            
+            console.log('⬇️  Recibido de Dropbox:', data); // LOG DE DATOS RECIBIDOS
+            
+            if (data && data.categories) {
+                // Reemplazar completamente los datos locales con los del servidor
+                Object.keys(categories).forEach(key => categories[key] = []); // Limpiar categorías locales
+                Object.assign(categories, data.categories); // Asignar las del servidor
+                
                 saveCategoriesToLocalStorage();
                 renderTasks();
-                console.log('✅ Tareas cargadas desde Dropbox');
+                console.log('✅ Tareas cargadas y renderizadas desde Dropbox');
                 return true;
             }
         } else if (response.status === 409) {
-            console.log('📂 No hay archivo de backup en Dropbox');
+            console.log('📂 No hay archivo de backup en Dropbox. Creando uno nuevo...');
+            return await syncToDropbox(false); // Subir la versión actual si no existe
         } else {
             const errorData = await response.json();
             console.error('❌ Error al cargar desde Dropbox:', response.status, errorData);
@@ -501,13 +500,21 @@ async function syncFromDropbox() {
     return false;
 }
 
-// Sincronizar manualmente
+// Sincronizar manualmente - VERSIÓN MEJORADA
 const dropboxSyncBtn = document.getElementById('dropbox-sync');
 if (dropboxSyncBtn) {
     dropboxSyncBtn.addEventListener('click', async function() {
         console.log('🔄 Iniciando sincronización manual...');
-        const uploaded = await syncToDropbox();
-        if (!uploaded) {
+        
+        // 1. Subir cambios locales
+        const uploaded = await syncToDropbox(false); // 'false' para no mostrar la alerta
+        
+        // 2. Bajar la versión del servidor
+        const downloaded = await syncFromDropbox();
+        
+        if (uploaded && downloaded) {
+            alert('✅ Tareas sincronizadas correctamente');
+        } else {
             alert('❌ Error al sincronizar. Revisa la consola.');
         }
     });
