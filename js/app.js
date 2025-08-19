@@ -211,7 +211,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // === DROPBOX API DIRECTA ===
-    
+
     const DROPBOX_APP_KEY = 'f21fzdjtng58vcg';
     let accessToken = localStorage.getItem('dropbox_access_token');
 
@@ -242,10 +242,38 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Verificar si el token es válido
+    async function validateToken() {
+        if (!accessToken) return false;
+        
+        try {
+            const response = await fetch('https://api.dropboxapi.com/2/users/get_current_account', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                return true;
+            } else {
+                // Token inválido, limpiar
+                localStorage.removeItem('dropbox_access_token');
+                accessToken = null;
+                updateDropboxButtons();
+                return false;
+            }
+        } catch (error) {
+            console.error('Error validando token:', error);
+            return false;
+        }
+    }
+
     // Guardar tareas en Dropbox
     async function syncToDropbox() {
-        if (!accessToken) {
-            console.log('No hay token de acceso');
+        if (!accessToken || !(await validateToken())) {
+            console.log('Token no válido o no disponible');
             return;
         }
         
@@ -271,27 +299,25 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             if (response.ok) {
-                console.log('Tareas guardadas en Dropbox');
-                // alert('Tareas sincronizadas con Dropbox'); // Comenta esto para que no sea molesto
+                console.log('✅ Tareas guardadas en Dropbox');
+                return true;
             } else {
-                const errorText = await response.text();
-                console.error('Error al guardar en Dropbox:', response.status, errorText);
-                
-                // Si el token ha expirado, limpiar
-                if (response.status === 401) {
-                    localStorage.removeItem('dropbox_access_token');
-                    accessToken = null;
-                    updateDropboxButtons();
-                }
+                const errorData = await response.json();
+                console.error('❌ Error al guardar en Dropbox:', response.status, errorData);
+                return false;
             }
         } catch (error) {
-            console.error('Error al sincronizar:', error);
+            console.error('❌ Error de red al sincronizar:', error);
+            return false;
         }
     }
 
     // Cargar tareas desde Dropbox
     async function syncFromDropbox() {
-        if (!accessToken) return;
+        if (!accessToken || !(await validateToken())) {
+            console.log('Token no válido para cargar');
+            return;
+        }
         
         try {
             const response = await fetch('https://content.dropboxapi.com/2/files/download', {
@@ -309,19 +335,32 @@ document.addEventListener('DOMContentLoaded', function() {
                     Object.assign(categories, data.categories);
                     saveCategoriesToLocalStorage();
                     renderTasks();
-                    console.log('Tareas cargadas desde Dropbox');
+                    console.log('✅ Tareas cargadas desde Dropbox');
+                    return true;
                 }
+            } else if (response.status === 409) {
+                console.log('📂 No hay archivo de backup en Dropbox');
+            } else {
+                const errorData = await response.json();
+                console.error('❌ Error al cargar desde Dropbox:', response.status, errorData);
             }
         } catch (error) {
-            console.log('No hay backup previo en Dropbox o error:', error);
+            console.log('⚠️ No se pudo cargar desde Dropbox:', error.message);
         }
+        return false;
     }
 
     // Sincronizar manualmente
     const dropboxSyncBtn = document.getElementById('dropbox-sync');
     if (dropboxSyncBtn) {
-        dropboxSyncBtn.addEventListener('click', function() {
-            syncToDropbox();
+        dropboxSyncBtn.addEventListener('click', async function() {
+            console.log('🔄 Iniciando sincronización manual...');
+            const uploaded = await syncToDropbox();
+            if (uploaded) {
+                alert('✅ Tareas sincronizadas correctamente');
+            } else {
+                alert('❌ Error al sincronizar. Revisa la consola.');
+            }
         });
     }
 
@@ -336,7 +375,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Verificar token al cargar (Dropbox devuelve el token en el hash)
+    // Verificar token al cargar
     const hash = window.location.hash.substring(1);
     const params = new URLSearchParams(hash);
     const newToken = params.get('access_token');
@@ -347,11 +386,15 @@ document.addEventListener('DOMContentLoaded', function() {
         window.location.hash = '';
         updateDropboxButtons();
         syncFromDropbox();
-        alert('Conectado con Dropbox correctamente');
+        alert('✅ Conectado con Dropbox correctamente');
     } else {
         updateDropboxButtons();
         if (accessToken) {
-            syncFromDropbox();
+            validateToken().then(valid => {
+                if (valid) {
+                    syncFromDropbox();
+                }
+            });
         }
     }
 
