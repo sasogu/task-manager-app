@@ -224,3 +224,32 @@ footer {
 .toast.error {
     background-color: #f44336; /* Rojo */
 }
+
+.controles-principales {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-top: 1px solid #eee;
+    justify-content: center;
+}
+.grupo-botones {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.grupo-botones h3 {
+    margin: 0 0 5px 0;
+    font-size: 16px;
+    color: #555;
+}
+.boton-peligro {
+    background-color: #d9534f;
+    color: white;
+    border-color: #d43f3a;
+}
+.boton-peligro:hover {
+    background-color: #c9302c;
+    border-color: #ac2925;
+}

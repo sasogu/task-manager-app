@@ -374,17 +374,13 @@ async function validateToken() {
     if (!accessToken) return false;
     
     try {
-        // Añadir un pequeño delay para asegurar que el token esté listo
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
         const response = await fetch('https://api.dropboxapi.com/2/users/get_current_account', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
+                // 'Content-Type' no es necesario si el body es null
             },
-            // AÑADE ESTA LÍNEA - ES LA SOLUCIÓN
-            body: JSON.stringify({}) 
+            body: null // ¡ESTA ES LA CORRECCIÓN CLAVE! La API espera un cuerpo nulo.
         });
         
         console.log('🧪 Status de validación:', response.status);
@@ -396,14 +392,6 @@ async function validateToken() {
         } else {
             const errorData = await response.text();
             console.log('❌ Token inválido:', response.status, errorData);
-            
-            // Solo limpiar si es realmente un error de autorización persistente
-            if (response.status === 401) {
-                console.log('🗑️ Limpiando token por error 401');
-                localStorage.removeItem('dropbox_access_token');
-                accessToken = null;
-                updateDropboxButtons();
-            }
             return false;
         }
     } catch (error) {
