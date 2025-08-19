@@ -332,7 +332,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const hash = window.location.hash.substring(1);
     const params = new URLSearchParams(hash);
     const newToken = params.get('access_token');
-    
+
     if (newToken) {
         localStorage.setItem('dropbox_access_token', newToken);
         accessToken = newToken;
@@ -347,12 +347,30 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Sincronizar automáticamente al añadir tareas
-    const originalAddTask = window.addTask;
-    window.addTask = function(category, task) {
+    // Modificar la función addTask para sincronizar automáticamente
+    const originalAddTask = addTask;
+    addTask = function(category, task) {
         originalAddTask(category, task);
         if (accessToken) {
-            syncToDropbox();
+            setTimeout(() => syncToDropbox(), 500); // Pequeño delay para asegurar que se guarda localmente primero
+        }
+    };
+
+    // Modificar removeTask también
+    const originalRemoveTask = removeTask;
+    removeTask = function(category, taskIndex) {
+        originalRemoveTask(category, taskIndex);
+        if (accessToken) {
+            setTimeout(() => syncToDropbox(), 500);
+        }
+    };
+
+    // Modificar toggleTaskCompletion también
+    const originalToggleTask = toggleTaskCompletion;
+    toggleTaskCompletion = function(category, taskIndex) {
+        originalToggleTask(category, taskIndex);
+        if (accessToken) {
+            setTimeout(() => syncToDropbox(), 500);
         }
     };
 });
