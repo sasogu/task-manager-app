@@ -210,6 +210,17 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(() => { popupInput && popupInput.focus(); }, 200);
         });
     }
+
+    // Login con Dropbox
+    const dropboxLoginBtn = document.getElementById('dropbox-login');
+    if (dropboxLoginBtn) {
+        dropboxLoginBtn.addEventListener('click', function() {
+            console.log('Botón de Dropbox clickeado'); // Para debug
+            const authUrl = dbx.getAuthenticationUrl('https://sasogu.github.io/task-manager-app/');
+            console.log('URL de autorización:', authUrl); // Para debug
+            window.location.href = authUrl;
+        });
+    }
 });
 
 // Función para obtener las tareas desde localStorage
