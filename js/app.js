@@ -440,8 +440,8 @@ async function syncToDropbox(showAlert = true) { // Añadido parámetro para con
         
         if (response.ok) {
             console.log('✅ Tareas guardadas en Dropbox');
-            if (showAlert) { // Mostrar alerta solo si se indica
-                alert('✅ Tareas sincronizadas correctamente');
+            if (showAlert) {
+                showToast('✅ Tareas sincronizadas correctamente');
             }
             return true;
         } else {
@@ -500,34 +500,31 @@ async function syncFromDropbox() {
     return false;
 }
 
-// Sincronizar manualmente - VERSIÓN MEJORADA
+// Sincronizar manualmente - VERSIÓN CON TOASTS
 const dropboxSyncBtn = document.getElementById('dropbox-sync');
 if (dropboxSyncBtn) {
     dropboxSyncBtn.addEventListener('click', async function() {
         console.log('🔄 Iniciando sincronización manual...');
         
-        // 1. Subir cambios locales
-        const uploaded = await syncToDropbox(false); // 'false' para no mostrar la alerta
-        
-        // 2. Bajar la versión del servidor
+        const uploaded = await syncToDropbox(false);
         const downloaded = await syncFromDropbox();
         
         if (uploaded && downloaded) {
-            alert('✅ Tareas sincronizadas correctamente');
+            showToast('✅ Tareas sincronizadas correctamente');
         } else {
-            alert('❌ Error al sincronizar. Revisa la consola.');
+            showToast('❌ Error al sincronizar. Revisa la consola.', 'error');
         }
     });
 }
 
-// Logout de Dropbox
+// Logout de Dropbox - VERSIÓN CON TOASTS
 const dropboxLogoutBtn = document.getElementById('dropbox-logout');
 if (dropboxLogoutBtn) {
     dropboxLogoutBtn.addEventListener('click', function() {
         localStorage.removeItem('dropbox_access_token');
         accessToken = null;
         updateDropboxButtons();
-        alert('Desconectado de Dropbox');
+        showToast('Desconectado de Dropbox');
     });
 }
 
@@ -565,7 +562,7 @@ function handleAuthCallback() {
         window.history.replaceState({}, document.title, window.location.pathname);
         
         updateDropboxButtons();
-        alert('✅ Conectado con Dropbox correctamente');
+        showToast('✅ Conectado con Dropbox correctamente');
         
         // Intentar sincronizar con más delay
         setTimeout(() => {
@@ -644,6 +641,27 @@ window.testDropboxConnection = async function() {
 };
 
 console.log('💡 Ejecuta testDropboxConnection() en consola para probar el token');
+
+// FUNCIÓN PARA MOSTRAR NOTIFICACIONES (TOASTS)
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+
+    // Hacer visible el toast
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 100);
+
+    // Ocultar y eliminar después de 3 segundos
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+            document.body.removeChild(toast);
+        }, 500); // Esperar a que la transición de opacidad termine
+    }, 3000);
+}
 
 
 

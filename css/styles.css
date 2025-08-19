@@ -146,3 +146,35 @@ footer {
         margin-bottom: 18px;
     }
 }
+
+/* Estilos para Notificaciones Toast */
+.toast {
+    visibility: hidden;
+    min-width: 250px;
+    margin-left: -125px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 4px;
+    padding: 16px;
+    position: fixed;
+    z-index: 100;
+    left: 50%;
+    bottom: 30px;
+    font-size: 17px;
+    opacity: 0;
+    transition: opacity 0.5s, bottom 0.5s;
+}
+
+.toast.show {
+    visibility: visible;
+    opacity: 1;
+}
+
+.toast.success {
+    background-color: #4CAF50; /* Verde */
+}
+
+.toast.error {
+    background-color: #f44336; /* Rojo */
+}
