@@ -347,7 +347,7 @@ function updateDropboxButtons() {
     logDropboxStatus(); // Debug
 }
 
-// Verificar si el token es válido - VERSIÓN MEJORADA
+// Verificar si el token es válido - VERSIÓN CORREGIDA
 async function validateToken() {
     if (!accessToken) return false;
     
@@ -360,7 +360,9 @@ async function validateToken() {
             headers: {
                 'Authorization': `Bearer ${accessToken}`,
                 'Content-Type': 'application/json'
-            }
+            },
+            // AÑADE ESTA LÍNEA - ES LA SOLUCIÓN
+            body: JSON.stringify({}) 
         });
         
         console.log('🧪 Status de validación:', response.status);
