@@ -27,6 +27,14 @@ function showToast(message, type = 'success') {
     }, 3000);
 }
 
+function obtenerFechaActualParaNombreArchivo() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const day = now.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 // --- GESTIÓN DE DATOS LOCALES ---
 function saveCategoriesToLocalStorage() { localStorage.setItem('categories', JSON.stringify(categories)); }
 function loadCategoriesFromLocalStorage() {
@@ -44,7 +52,7 @@ function migrateOldTasks() {
     if (needsSave) { console.log('🔧 Migrando tareas antiguas.'); saveCategoriesToLocalStorage(); }
 }
 
-// --- LÓGICA DE MANIPULACIÓN DE TAREAS (CORREGIDA CON IDs) ---
+// --- LÓGICA DE MANIPULACIÓN DE TAREAS ---
 function findTask(taskId) {
     for (const category in categories) {
         const taskIndex = categories[category].findIndex(t => t.id === taskId);
@@ -104,18 +112,15 @@ function moveTask(taskId, newCategory) {
     }
 }
 
-// --- RENDERIZADO EN EL DOM (SIN BOTÓN DE ELIMINAR) ---
+// --- RENDERIZADO EN EL DOM ---
 function renderTasks() {
     const taskContainer = document.getElementById('task-container');
     taskContainer.innerHTML = '';
     const categoryNames = { "bandeja-de-entrada": "Bandeja de Entrada", "prioritaria": "Prioritaria", "proximas": "Próximas", "algun-dia": "Algún Día" };
-
     for (const [category, tasks] of Object.entries(categories)) {
         if (category === 'archivadas') continue;
         const categoryDiv = document.createElement('div');
         categoryDiv.className = 'category';
-        
-        // Se ha eliminado el botón de la papelera de esta plantilla
         let tasksHTML = tasks.map(task => `
             <div class="task ${task.completed ? 'completed' : ''}">
                 <input type="checkbox" onchange="toggleTaskCompletion('${task.id}')" ${task.completed ? 'checked' : ''}>
@@ -124,99 +129,73 @@ function renderTasks() {
                     <option value="" disabled selected>Mover</option>
                     ${Object.keys(categoryNames).filter(c => c !== category).map(c => `<option value="${c}">${categoryNames[c]}</option>`).join('')}
                 </select>
-            </div>
-        `).join('');
-
+                <button class="delete-btn" onclick="removeTask('${task.id}')">🗑️</button>
+            </div>`).join('');
         categoryDiv.innerHTML = `<h3>${categoryNames[category]}</h3><div class="task-list">${tasksHTML}</div>`;
         taskContainer.appendChild(categoryDiv);
     }
 }
 
-// --- LÓGICA DE SINCRONIZACIÓN CON DROPBOX (CORREGIDA CON FUSIÓN) ---
+// --- LÓGICA DE SINCRONIZACIÓN CON DROPBOX ---
 function updateDropboxButtons() {
     const loginBtn = document.getElementById('dropbox-login');
     const syncBtn = document.getElementById('dropbox-sync');
     const logoutBtn = document.getElementById('dropbox-logout');
-
-    if (!loginBtn || !syncBtn || !logoutBtn) return; // Comprobación de seguridad
-
     if (accessToken) {
-        loginBtn.style.display = 'none';
-        syncBtn.style.display = 'inline-block';
-        logoutBtn.style.display = 'inline-block';
+        if (loginBtn) loginBtn.style.display = 'none';
+        if (syncBtn) syncBtn.style.display = 'inline-block';
+        if (logoutBtn) logoutBtn.style.display = 'inline-block';
     } else {
-        loginBtn.style.display = 'inline-block';
-        syncBtn.style.display = 'none';
-        logoutBtn.style.display = 'none';
+        if (loginBtn) loginBtn.style.display = 'inline-block';
+        if (syncBtn) syncBtn.style.display = 'none';
+        if (logoutBtn) logoutBtn.style.display = 'none';
     }
 }
 
 async function validateToken() {
     if (!accessToken) return false;
-    
     try {
         const response = await fetch('https://api.dropboxapi.com/2/users/get_current_account', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                // 'Content-Type' no es necesario si el body es null
-            },
-            body: null // ¡ESTA ES LA CORRECCIÓN CLAVE! La API espera un cuerpo nulo.
+            method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` }, body: null
         });
-        
-        console.log('🧪 Status de validación:', response.status);
-        
         if (response.ok) {
             const userData = await response.json();
             console.log('✅ Token válido para usuario:', userData.name.display_name);
             return true;
-        } else {
-            const errorData = await response.text();
-            console.log('❌ Token inválido:', response.status, errorData);
-            return false;
         }
-    } catch (error) {
-        console.error('💥 Error de red al validar token:', error);
         return false;
-    }
+    } catch (error) { return false; }
 }
 
-// FUNCIÓN DE FUSIÓN CORREGIDA Y MÁS ROBUSTA
-function mergeTasks(localCategories, remoteCategories) {
-    const tasksById = new Map();
+function mergeDeletedTasks(localDeleted, remoteDeleted) {
+    const deletedById = new Map();
+    localDeleted.forEach(t => deletedById.set(t.id, t));
+    remoteDeleted.forEach(t => deletedById.set(t.id, t));
+    return Array.from(deletedById.values());
+}
 
-    // 1. Poner TODAS las tareas (locales y remotas) en un solo mapa,
-    //    quedándose siempre con la versión que tenga el timestamp más reciente.
+function mergeTasks(localCategories, remoteCategories, deletedIdsSet) {
+    const tasksById = new Map();
     const processCategory = (categoriesObject) => {
         for (const categoryName in categoriesObject) {
             for (const task of categoriesObject[categoryName]) {
+                if (deletedIdsSet.has(task.id)) continue;
                 const existing = tasksById.get(task.id);
                 if (!existing || new Date(task.lastModified) > new Date(existing.lastModified)) {
-                    // Guardamos la tarea Y la categoría a la que pertenece
                     tasksById.set(task.id, { ...task, category: categoryName });
                 }
             }
         }
     };
-
     processCategory(localCategories);
     processCategory(remoteCategories);
-
-    // 2. Ahora que tenemos la lista definitiva de tareas ganadoras,
-    //    reconstruimos el objeto de categorías desde cero.
-    const mergedCategories = {
-        "bandeja-de-entrada": [], "prioritaria": [], "proximas": [], "algun-dia": [], "archivadas": []
-    };
-
+    const mergedCategories = { "bandeja-de-entrada": [], "prioritaria": [], "proximas": [], "algun-dia": [], "archivadas": [] };
     for (const task of tasksById.values()) {
-        // Si la categoría de la tarea ganadora existe, la colocamos allí.
         if (mergedCategories[task.category]) {
-            // Quitamos la propiedad 'category' que era temporal
             const { category, ...finalTask } = task;
             mergedCategories[category].push(finalTask);
         }
     }
-
     return mergedCategories;
 }
 
@@ -250,9 +229,15 @@ async function syncFromDropbox(force = false) {
             if (res.ok) {
                 const remoteData = await res.json();
                 if (remoteData.categories) {
-                    const merged = mergeTasks(categories, remoteData.categories);
-                    Object.assign(categories, merged);
+                    const remoteDeleted = remoteData.deletedTasks || [];
+                    const mergedDeletedList = mergeDeletedTasks(deletedTasks, remoteDeleted);
+                    const deletedIdsSet = new Set(mergedDeletedList.map(t => t.id));
+                    const mergedCategories = mergeTasks(categories, remoteData.categories, deletedIdsSet);
+                    Object.assign(categories, mergedCategories);
+                    deletedTasks.length = 0;
+                    Array.prototype.push.apply(deletedTasks, mergedDeletedList);
                     saveCategoriesToLocalStorage();
+                    localStorage.setItem('deletedTasks', JSON.stringify(deletedTasks));
                     renderTasks();
                     localLastSync = remoteMeta.server_modified;
                     localStorage.setItem('lastSync', localLastSync);
@@ -288,64 +273,32 @@ function stopAutoSyncPolling() {
 }
 
 function handleAuthCallback() {
-    // Verificar tanto en hash como en query params
     const hash = window.location.hash.substring(1);
-    const search = window.location.search.substring(1);
-    
-    console.log('🔍 Hash:', hash);
-    console.log('🔍 Search:', search);
-    
-    let newToken = null;
-    
-    // Intentar desde hash
-    if (hash) {
-        const hashParams = new URLSearchParams(hash);
-        newToken = hashParams.get('access_token');
-    }
-    
-    // Intentar desde query params si no hay en hash
-    if (!newToken && search) {
-        const searchParams = new URLSearchParams(search);
-        newToken = searchParams.get('access_token');
-    }
-    
-    console.log('🎫 Nuevo token encontrado:', newToken ? 'Sí' : 'No');
-    
+    const params = new URLSearchParams(hash);
+    const newToken = params.get('access_token');
     if (newToken) {
-        console.log('💾 Guardando token...');
         localStorage.setItem('dropbox_access_token', newToken);
         accessToken = newToken;
-        
-        // Limpiar URL
         window.history.replaceState({}, document.title, window.location.pathname);
-        
         updateDropboxButtons();
         showToast('✅ Conectado con Dropbox correctamente');
-        
-        // Intentar sincronizar con más delay
-        setTimeout(() => {
-            console.log('🔄 Intentando primera sincronización...');
-            syncFromDropbox();
-        }, 2000); // Aumentado a 2 segundos
+        setTimeout(() => syncFromDropbox(), 1500);
     } else {
-        updateDropboxButtons();
         if (accessToken) {
-            console.log('🔄 Token existente encontrado, validando...');
-            // Validar con delay
-            setTimeout(() => {
-                validateToken().then(valid => {
-                    if (valid) {
-                        syncFromDropbox();
-                    } else {
-                        console.log('❌ Token existente no válido');
-                    }
-                });
-            }, 1000);
+            validateToken().then(valid => {
+                if (valid) {
+                    updateDropboxButtons();
+                    syncFromDropbox();
+                    startAutoSyncPolling();
+                }
+            });
+        } else {
+            updateDropboxButtons();
         }
     }
 }
 
-// --- INICIALIZACIÓN DE LA APLICACIÓN (ÚNICA Y CONSOLIDADA) ---
+// --- INICIALIZACIÓN DE LA APLICACIÓN ---
 document.addEventListener('DOMContentLoaded', function() {
     loadCategoriesFromLocalStorage();
     migrateOldTasks();
@@ -388,13 +341,78 @@ document.addEventListener('DOMContentLoaded', function() {
         showToast('Desconectado de Dropbox');
     });
 
-    // Lógica de Backup/Restore y Limpieza
-    // ... (Aquí irían los listeners para backup-btn, restore-btn, etc., que ya tenías)
+    // Lógica de Backup/Restore y Limpieza (RESTAURADA)
+    document.getElementById('backup-btn')?.addEventListener('click', function() {
+        const backupData = { fecha: new Date().toISOString(), categories: categories, deletedTasks: deletedTasks };
+        const blob = new Blob([JSON.stringify(backupData, null, 2)], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `tareas-backup_${obtenerFechaActualParaNombreArchivo()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    });
 
-    // Iniciar el flujo de autenticación de Dropbox
-    handleAuthCallback();
+    document.getElementById('restore-btn')?.addEventListener('click', function() {
+        document.getElementById('restore-file').click();
+    });
+
+    document.getElementById('restore-file')?.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const json = JSON.parse(e.target.result);
+                if (!json.categories || typeof json.categories !== 'object') throw new Error('Formato de backup no válido');
+                Object.keys(categories).forEach(cat => delete categories[cat]);
+                Object.assign(categories, json.categories);
+                saveCategoriesToLocalStorage();
+                renderTasks();
+                showToast('Tareas restauradas correctamente.');
+            } catch (err) {
+                showToast('Error al importar: ' + err.message, 'error');
+            }
+        };
+        reader.readAsText(file);
+    });
+
+    document.getElementById('export-deleted-btn')?.addEventListener('click', function() {
+        if (deletedTasks.length === 0) {
+            showToast('No hay tareas eliminadas para exportar.', 'error');
+            return;
+        }
+        const headers = ['ID', 'Tarea', 'Completada', 'Fecha de Modificación', 'Fecha de Eliminación'];
+        const rows = deletedTasks.map(t => [t.id, `"${(t.task || '').replace(/"/g, '""')}"`, t.completed ? 'Sí' : 'No', t.lastModified, t.deletedOn].join(','));
+        const csvContent = [headers.join(','), ...rows].join('\r\n');
+        const blob = new Blob([csvContent], {type: 'text/csv;charset=utf-8;'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `tareas-eliminadas_${obtenerFechaActualParaNombreArchivo()}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('clear-data-btn')?.addEventListener('click', function() {
+        if (confirm('¿Borrar todos los datos locales y cache?')) {
+            localStorage.clear();
+            caches.keys().then(keys => keys.forEach(key => caches.delete(key)));
+            showToast('Datos borrados. La página se recargará.');
+            setTimeout(() => location.reload(), 1000);
+        }
+    });
+
+    // Iniciar el sondeo de sincronización automática si hay token
+    if (accessToken) {
+        validateToken().then(valid => {
+            if (valid) {
+                updateDropboxButtons();
+                syncFromDropbox();
+                startAutoSyncPolling();
+            }
+        });
+    } else {
+        updateDropboxButtons();
+    }
 });
-// (Asegúrate de que las implementaciones de updateDropboxButtons, validateToken y handleAuthCallback estén completas aquí)
-
-
-
