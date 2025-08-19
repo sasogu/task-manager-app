@@ -211,64 +211,24 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // === CÓDIGO DE DROPBOX ===
+    // === DROPBOX SIN SDK ===
     
-    // Configuración de Dropbox
-    const dbx = new Dropbox.Dropbox({ 
-        clientId: 'f21fzdjtng58vcg', // Tu App Key
-        fetch: fetch
-    });
-
-    let isLoggedIn = false;
-
-    // Verificar si ya está autenticado
-    function checkDropboxAuth() {
-        const accessToken = localStorage.getItem('dropbox_access_token');
-        if (accessToken) {
-            dbx.setAccessToken(accessToken);
-            isLoggedIn = true;
-            document.getElementById('dropbox-login').style.display = 'none';
-            document.getElementById('dropbox-sync').style.display = 'inline-block';
-            document.getElementById('dropbox-logout').style.display = 'inline-block';
-            syncFromDropbox();
-        }
-    }
+    const DROPBOX_APP_KEY = 'f21fzdjtng58vcg';
+    let accessToken = localStorage.getItem('dropbox_access_token');
 
     // Login con Dropbox
     const dropboxLoginBtn = document.getElementById('dropbox-login');
     if (dropboxLoginBtn) {
         dropboxLoginBtn.addEventListener('click', function() {
             console.log('Conectando con Dropbox...');
-            const authUrl = dbx.getAuthenticationUrl('https://sasogu.github.io/task-manager-app/');
-            console.log('URL:', authUrl);
+            const authUrl = `https://www.dropbox.com/oauth2/authorize?client_id=${DROPBOX_APP_KEY}&response_type=token&redirect_uri=https://sasogu.github.io/task-manager-app/`;
             window.location.href = authUrl;
-        });
-    }
-
-    // Sincronizar manualmente
-    const dropboxSyncBtn = document.getElementById('dropbox-sync');
-    if (dropboxSyncBtn) {
-        dropboxSyncBtn.addEventListener('click', function() {
-            syncToDropbox();
-            syncFromDropbox();
-        });
-    }
-
-    // Logout de Dropbox
-    const dropboxLogoutBtn = document.getElementById('dropbox-logout');
-    if (dropboxLogoutBtn) {
-        dropboxLogoutBtn.addEventListener('click', function() {
-            localStorage.removeItem('dropbox_access_token');
-            isLoggedIn = false;
-            document.getElementById('dropbox-login').style.display = 'inline-block';
-            document.getElementById('dropbox-sync').style.display = 'none';
-            document.getElementById('dropbox-logout').style.display = 'none';
         });
     }
 
     // Guardar tareas en Dropbox
     async function syncToDropbox() {
-        if (!isLoggedIn) return;
+        if (!accessToken) return;
         
         const data = {
             categories: categories,
@@ -277,31 +237,50 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         
         try {
-            await dbx.filesUpload({
-                path: '/tareas.json',
-                contents: JSON.stringify(data, null, 2),
-                mode: 'overwrite',
-                autorename: true
+            const response = await fetch('https://content.dropboxapi.com/2/files/upload', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/octet-stream',
+                    'Dropbox-API-Arg': JSON.stringify({
+                        path: '/tareas.json',
+                        mode: 'overwrite'
+                    })
+                },
+                body: JSON.stringify(data, null, 2)
             });
-            console.log('Tareas guardadas en Dropbox');
+            
+            if (response.ok) {
+                console.log('Tareas guardadas en Dropbox');
+            } else {
+                console.error('Error al guardar en Dropbox');
+            }
         } catch (error) {
-            console.error('Error al guardar en Dropbox:', error);
+            console.error('Error:', error);
         }
     }
 
     // Cargar tareas desde Dropbox
     async function syncFromDropbox() {
-        if (!isLoggedIn) return;
+        if (!accessToken) return;
         
         try {
-            const response = await dbx.filesDownload({path: '/tareas.json'});
-            const data = JSON.parse(response.result.fileBinary);
+            const response = await fetch('https://content.dropboxapi.com/2/files/download', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Dropbox-API-Arg': JSON.stringify({path: '/tareas.json'})
+                }
+            });
             
-            if (data.categories) {
-                Object.assign(categories, data.categories);
-                saveCategoriesToLocalStorage();
-                renderTasks();
-                console.log('Tareas cargadas desde Dropbox');
+            if (response.ok) {
+                const data = await response.json();
+                if (data.categories) {
+                    Object.assign(categories, data.categories);
+                    saveCategoriesToLocalStorage();
+                    renderTasks();
+                    console.log('Tareas cargadas desde Dropbox');
+                }
             }
         } catch (error) {
             console.log('No hay backup previo en Dropbox:', error);
@@ -309,18 +288,42 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Verificar token al cargar
-    const urlParams = new URLSearchParams(window.location.search);
-    const accessToken = urlParams.get('access_token');
+    const urlParams = new URLSearchParams(window.location.hash.substring(1));
+    const newToken = urlParams.get('access_token');
     
-    if (accessToken) {
-        localStorage.setItem('dropbox_access_token', accessToken);
-        dbx.setAccessToken(accessToken);
-        isLoggedIn = true;
-        window.history.replaceState({}, document.title, window.location.pathname);
-        checkDropboxAuth();
-    } else {
-        checkDropboxAuth();
+    if (newToken) {
+        localStorage.setItem('dropbox_access_token', newToken);
+        accessToken = newToken;
+        window.location.hash = '';
+        updateDropboxButtons();
+        syncFromDropbox();
+    } else if (accessToken) {
+        updateDropboxButtons();
     }
+
+    function updateDropboxButtons() {
+        if (accessToken) {
+            document.getElementById('dropbox-login').style.display = 'none';
+            document.getElementById('dropbox-sync').style.display = 'inline-block';
+            document.getElementById('dropbox-logout').style.display = 'inline-block';
+        } else {
+            document.getElementById('dropbox-login').style.display = 'inline-block';
+            document.getElementById('dropbox-sync').style.display = 'none';
+            document.getElementById('dropbox-logout').style.display = 'none';
+        }
+    }
+
+    // Event listeners para sincronizar y logout
+    document.getElementById('dropbox-sync')?.addEventListener('click', function() {
+        syncToDropbox();
+        syncFromDropbox();
+    });
+
+    document.getElementById('dropbox-logout')?.addEventListener('click', function() {
+        localStorage.removeItem('dropbox_access_token');
+        accessToken = null;
+        updateDropboxButtons();
+    });
 });
 
 // Función para obtener las tareas desde localStorage
