@@ -462,6 +462,59 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // === DEBUG DROPBOX ===
+    document.addEventListener('DOMContentLoaded', function() {
+        
+        // Función de debug completa
+        function debugDropboxConfig() {
+            console.log('=== DEBUG DROPBOX ===');
+            console.log('App Key:', 'f21fzdjtng58vcg');
+            console.log('Current URL:', window.location.href);
+            console.log('Token in localStorage:', localStorage.getItem('dropbox_access_token') ? 'EXISTS' : 'NOT FOUND');
+            console.log('URL Hash:', window.location.hash);
+            console.log('URL Search:', window.location.search);
+            console.log('====================');
+        }
+        
+        // Ejecutar debug al cargar
+        debugDropboxConfig();
+        
+        // Función para probar manualmente la conexión
+        window.testDropboxConnection = async function() {
+            const token = localStorage.getItem('dropbox_access_token');
+            if (!token) {
+                console.log('❌ No hay token');
+                return;
+            }
+            
+            console.log('🧪 Probando conexión con token...');
+            
+            try {
+                const response = await fetch('https://api.dropboxapi.com/2/users/get_current_account', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                console.log('📡 Respuesta:', response.status);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('✅ Token válido. Usuario:', data.name.display_name);
+                } else {
+                    const error = await response.json();
+                    console.log('❌ Token inválido:', error);
+                }
+            } catch (err) {
+                console.log('💥 Error de red:', err);
+            }
+        };
+        
+        console.log('💡 Ejecuta testDropboxConnection() en consola para probar el token');
+    });
 });
 
 // Función para obtener las tareas desde localStorage
