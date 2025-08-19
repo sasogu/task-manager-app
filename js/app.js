@@ -133,18 +133,18 @@ function updateDropboxButtons() {
     const loginBtn = document.getElementById('dropbox-login');
     const syncBtn = document.getElementById('dropbox-sync');
     const logoutBtn = document.getElementById('dropbox-logout');
-    
+
+    if (!loginBtn || !syncBtn || !logoutBtn) return; // Comprobación de seguridad
+
     if (accessToken) {
-        if (loginBtn) loginBtn.style.display = 'none';
-        if (syncBtn) syncBtn.style.display = 'inline-block';
-        if (logoutBtn) logoutBtn.style.display = 'inline-block';
+        loginBtn.style.display = 'none';
+        syncBtn.style.display = 'inline-block';
+        logoutBtn.style.display = 'inline-block';
     } else {
-        if (loginBtn) loginBtn.style.display = 'inline-block';
-        if (syncBtn) syncBtn.style.display = 'none';
-        if (logoutBtn) logoutBtn.style.display = 'none';
+        loginBtn.style.display = 'inline-block';
+        syncBtn.style.display = 'none';
+        logoutBtn.style.display = 'none';
     }
-    
-    logDropboxStatus(); // Debug
 }
 
 async function validateToken() {
