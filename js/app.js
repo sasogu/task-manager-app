@@ -373,20 +373,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     throw new Error('Formato de backup no válido. Falta la propiedad "categories".');
                 }
 
-                // 1. Restaurar las categorías
-                Object.keys(categories).forEach(cat => categories[cat] = []); // Limpia el objeto actual
-                Object.assign(categories, json.categories);
-                saveCategoriesToLocalStorage();
+                // Restaurar las categorías y las tareas eliminadas
+                localStorage.setItem('categories', JSON.stringify(json.categories));
+                localStorage.setItem('deletedTasks', JSON.stringify(json.deletedTasks || []));
 
-                // 2. RESTAURAR TAMBIÉN LAS TAREAS ELIMINADAS (¡LA CLAVE!)
-                const backupDeletedTasks = json.deletedTasks || [];
-                deletedTasks.length = 0; // Limpiar la lista global actual
-                Array.prototype.push.apply(deletedTasks, backupDeletedTasks); // Cargar las del backup
-                localStorage.setItem('deletedTasks', JSON.stringify(deletedTasks));
+                showToast('Tareas restauradas. La página se recargará.');
 
-                // 3. Actualizar la interfaz
-                renderTasks();
-                showToast('Tareas restauradas correctamente.');
+                // ¡LA CLAVE! Forzar una recarga para limpiar el estado y la URL.
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500); // Esperar 1.5 segundos para que el usuario lea el toast.
 
             } catch (err) {
                 showToast('Error al importar: ' + err.message, 'error');
