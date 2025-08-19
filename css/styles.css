@@ -253,3 +253,58 @@ footer {
     background-color: #c9302c;
     border-color: #ac2925;
 }
+
+/* ============================================ */
+/* === MEJORAS DE DISEÑO RESPONSIVE PARA TAREAS === */
+/* ============================================ */
+
+/* 1. Convertir cada tarea en un contenedor flexible */
+.task {
+    display: flex;
+    align-items: center; /* Alinear verticalmente todos los elementos */
+    gap: 10px; /* Espacio entre el checkbox, el texto y las acciones */
+    padding: 12px 8px;
+    border-bottom: 1px solid #eee;
+}
+
+/* 2. Hacer que el texto de la tarea ocupe todo el espacio disponible */
+.task span {
+    flex-grow: 1; /* ¡Esta es la clave! Empuja las acciones hacia la derecha */
+    margin: 0;
+    overflow: hidden; /* Evita que el texto largo rompa el diseño */
+    text-overflow: ellipsis; /* Añade "..." si el texto es muy largo */
+    white-space: nowrap;
+}
+
+/* 3. Estilizar las acciones (Mover y Eliminar) para que sean compactas */
+.task select {
+    flex-shrink: 0; /* Evita que el select se encoja */
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+    max-width: 100px; /* Limita el ancho en móviles */
+}
+
+.task .delete-btn {
+    flex-shrink: 0; /* Evita que el botón se encoja */
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 20px; /* Aumenta el tamaño del icono para que sea fácil de tocar */
+    cursor: pointer;
+    padding: 0 5px;
+    line-height: 1;
+    transition: color 0.2s ease;
+}
+
+.task .delete-btn:hover {
+    color: #d9534f; /* Color rojo al pasar el ratón por encima */
+}
+
+/* 4. Media Query para mejorar la vista en ordenadores */
+@media (min-width: 768px) {
+    .task select {
+        max-width: 150px; /* Permitir que el select sea un poco más ancho en pantallas grandes */
+    }
+}

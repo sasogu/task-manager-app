@@ -70,6 +70,11 @@ function addTask(category, taskName) {
 }
 
 function removeTask(taskId) {
+    // AÑADIDO: Diálogo de confirmación
+    if (!confirm('¿Estás seguro de que quieres eliminar esta tarea?')) {
+        return; // Si el usuario cancela, no hacer nada
+    }
+
     const taskData = findTask(taskId);
     if (taskData) {
         const [removedTask] = categories[taskData.category].splice(taskData.taskIndex, 1);
