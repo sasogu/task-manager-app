@@ -11,6 +11,7 @@ const DROPBOX_APP_KEY = 'f21fzdjtng58vcg';
 let accessToken = localStorage.getItem('dropbox_access_token');
 let localLastSync = localStorage.getItem('lastSync');
 let syncInterval = null;
+const REDIRECT_URI = 'https://sasogu.github.io/task-manager-app/';
 
 // --- FUNCIONES DE UTILIDAD ---
 function generateUUID() { return crypto.randomUUID(); }
