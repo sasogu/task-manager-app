@@ -259,6 +259,14 @@ async function syncToDropbox(showAlert = true) {
         const response = await fetch('https://content.dropboxapi.com/2/files/upload', {
             method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/octet-stream', 'Dropbox-API-Arg': JSON.stringify({ path: '/tareas.json', mode: 'overwrite' }) }, body: JSON.stringify(data, null, 2)
         });
+        if (response.status === 401) {
+            accessToken = null;
+            localStorage.removeItem('dropbox_access_token');
+            updateDropboxButtons();
+            showToast('⚠️ Tu sesión de Dropbox ha caducado. Vuelve a conectar.');
+            showReconnectDropboxBtn();
+            return false;
+        }
         if (response.ok) {
             const metadata = await response.json();
             localLastSync = metadata.server_modified;
@@ -274,10 +282,26 @@ async function syncFromDropbox(force = false) {
     if (!accessToken) return false;
     try {
         const meta = await fetch('https://api.dropboxapi.com/2/files/get_metadata', { method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ path: '/tareas.json' }) });
+        if (meta.status === 401) {
+            accessToken = null;
+            localStorage.removeItem('dropbox_access_token');
+            updateDropboxButtons();
+            showToast('⚠️ Tu sesión de Dropbox ha caducado. Vuelve a conectar.');
+            showReconnectDropboxBtn();
+            return false;
+        }
         if (!meta.ok) return meta.status === 409 ? await syncToDropbox(false) : false;
         const remoteMeta = await meta.json();
         if (force || !localLastSync || new Date(remoteMeta.server_modified) > new Date(localLastSync)) {
             const res = await fetch('https://content.dropboxapi.com/2/files/download', { method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}`, 'Dropbox-API-Arg': JSON.stringify({ path: '/tareas.json' }) } });
+            if (res.status === 401) {
+                accessToken = null;
+                localStorage.removeItem('dropbox_access_token');
+                updateDropboxButtons();
+                showToast('⚠️ Tu sesión de Dropbox ha caducado. Vuelve a conectar.');
+                showReconnectDropboxBtn();
+                return false;
+            }
             if (res.ok) {
                 const remoteData = await res.json();
                 if (remoteData.categories) {
