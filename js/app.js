@@ -131,7 +131,10 @@ function renderTasks() {
                  ondragstart="onDragStart(event, '${task.id}')">
                 <input type="checkbox" onchange="toggleTaskCompletion('${task.id}')" ${task.completed ? 'checked' : ''}>
                 <span>${convertirEnlaces(task.task)}</span>
-               
+                <select onchange="moveTask('${task.id}', this.value)">
+                    <option value="" disabled selected>Mover</option>
+                    ${Object.keys(categoryNames).filter(c => c !== category).map(c => `<option value="${c}">${categoryNames[c]}</option>`).join('')}
+                </select>
             </div>
         `).join('');
 
