@@ -66,6 +66,11 @@ header .acciones {
     align-items: center;
 }
 
+.task span {
+    text-align: left;
+    font-size: 1.2em; /* Aumenta el tamaño del texto */
+}
+
 .task.completed {
     text-decoration: line-through;
     background: #d4edda;
