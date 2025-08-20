@@ -62,9 +62,11 @@ header .acciones {
     margin: 5px 0;
     border-radius: 3px;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    align-items: center; /* centra verticalmente iconos/botones con el texto */
+    gap: 10px; /* opcional, separa elementos */
+    
 }
+
 
 .task span {
     flex: 1 1 auto;
