@@ -122,9 +122,8 @@ function renderTasks() {
         if (category === 'archivadas') continue;
         const categoryDiv = document.createElement('div');
         categoryDiv.className = 'category';
-        categoryDiv.setAttribute('data-category', category); // <-- Añade esta línea
+        categoryDiv.setAttribute('data-category', category);
 
-        // Se ha eliminado el botón de la papelera de esta plantilla
         let tasksHTML = tasks.map(task => `
             <div class="task ${task.completed ? 'completed' : ''}" 
                  draggable="true" 
@@ -141,29 +140,30 @@ function renderTasks() {
         categoryDiv.innerHTML = `<h3>${categoryNames[category]}</h3><div class="task-list">${tasksHTML}</div>`;
         taskContainer.appendChild(categoryDiv);
     }
+
+    // --- Añade los listeners DESPUÉS de renderizar ---
+    document.querySelectorAll('.category').forEach(catDiv => {
+        catDiv.addEventListener('dragover', e => {
+            e.preventDefault();
+            catDiv.classList.add('drag-over');
+        });
+        catDiv.addEventListener('dragleave', () => {
+            catDiv.classList.remove('drag-over');
+        });
+        catDiv.addEventListener('drop', function(e) {
+            e.preventDefault();
+            catDiv.classList.remove('drag-over');
+            const taskId = e.dataTransfer.getData('text/plain');
+            const newCategory = this.getAttribute('data-category');
+            moveTask(taskId, newCategory);
+        });
+    });
 }
 
-// Añade estos handlers globales:
+// Handler global para el arrastre
 window.onDragStart = function(event, taskId) {
     event.dataTransfer.setData('text/plain', taskId);
 };
-
-document.querySelectorAll('.category').forEach(catDiv => {
-    catDiv.addEventListener('dragover', e => {
-        e.preventDefault();
-        catDiv.classList.add('drag-over');
-    });
-    catDiv.addEventListener('dragleave', () => {
-        catDiv.classList.remove('drag-over');
-    });
-    catDiv.addEventListener('drop', function(e) {
-        e.preventDefault();
-        catDiv.classList.remove('drag-over');
-        const taskId = e.dataTransfer.getData('text/plain');
-        const newCategory = this.getAttribute('data-category');
-        moveTask(taskId, newCategory);
-    });
-});
 
 // --- LÓGICA DE SINCRONIZACIÓN CON DROPBOX (CORREGIDA CON FUSIÓN) ---
 function updateDropboxButtons() {
