@@ -444,6 +444,72 @@ document.addEventListener('DOMContentLoaded', function() {
     // Lógica de Backup/Restore y Limpieza
     // ... (Aquí irían los listeners para backup-btn, restore-btn, etc., que ya tenías)
 
+    // Importar tareas
+document.getElementById('restore-btn').addEventListener('click', function() {
+    document.getElementById('restore-file').click();
+});
+
+document.getElementById('restore-file').addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const json = JSON.parse(e.target.result);
+
+            if (!json.tareas || typeof json.tareas !== 'object') {
+                throw new Error('Formato de backup no válido');
+            }
+
+            // Reemplaza el contenido actual de `categories` sin recargar
+            Object.keys(categories).forEach(cat => delete categories[cat]); // Limpia
+            Object.assign(categories, json.tareas); // Carga
+
+            saveCategoriesToLocalStorage(); // Guarda en localStorage
+            renderTasks(); // Vuelve a renderizar en pantalla
+
+            showToast('Tareas restauradas correctamente.'); // REEMPLAZADO
+        } catch (err) {
+            showToast('Error al importar: ' + err.message, 'error'); // REEMPLAZADO
+        }
+    };
+    reader.readAsText(file);
+});
+
+// Exportar tareas eliminadas
+document.getElementById('export-deleted-btn').addEventListener('click', function() {
+    const deleted = JSON.parse(localStorage.getItem('deletedTasks') || '[]');
+    if (deleted.length === 0) {
+        showToast('No hay tareas eliminadas para exportar.', 'error'); // REEMPLAZADO
+        return;
+    }
+
+    // Encabezados CSV
+    const headers = ['Tarea', 'Completada', 'Categoría', 'Fecha de eliminación'];
+    // Filas CSV
+    const rows = deleted.map(t =>
+        [
+            `"${(t.task || '').replace(/"/g, '""')}"`,
+            t.completed ? 'Sí' : 'No',
+            t.category || '',
+            t.deletedAt || ''
+        ].join(',')
+    );
+    // Unir encabezados y filas
+    const csvContent = [headers.join(','), ...rows].join('\r\n');
+
+    // Descargar archivo
+    const blob = new Blob([csvContent], {type: 'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tareas-eliminadas_${obtenerFechaActualParaNombreArchivo()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+});
+
+
     const clearBtn = document.getElementById('clear-data-btn');
     if (clearBtn) {
         clearBtn.addEventListener('click', function() {
