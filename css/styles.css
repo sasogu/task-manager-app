@@ -69,7 +69,10 @@ header .acciones {
 .task span {
     flex: 1 1 auto;
     text-align: left !important;
-    font-size: 1.2em; /* Aumenta el tamaño del texto */
+    font-size: 1.2em;
+    color: #333;
+    /* Evita que el texto se centre verticalmente si hay espacio extra */
+    align-self: flex-start;
 }
 
 .task.completed {
