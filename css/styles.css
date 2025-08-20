@@ -67,7 +67,7 @@ header .acciones {
 }
 
 .task span {
-    text-align: left;
+    text-align: left !important;
     font-size: 1.2em; /* Aumenta el tamaño del texto */
 }
 
