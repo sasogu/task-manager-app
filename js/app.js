@@ -11,6 +11,7 @@ const DROPBOX_APP_KEY = 'f21fzdjtng58vcg';
 let accessToken = localStorage.getItem('dropbox_access_token');
 let localLastSync = localStorage.getItem('lastSync');
 let syncInterval = null;
+const DROPBOX_REDIRECT_URI = 'https://sasogu.github.io/task-manager-app/'; // Fijo, siempre la raíz
 
 // --- FUNCIONES DE UTILIDAD ---
 function generateUUID() { return crypto.randomUUID(); }
@@ -425,7 +426,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         console.log('🔍 URL de redirección:', redirectUri);
         
-        const authUrl = `https://www.dropbox.com/oauth2/authorize?client_id=${DROPBOX_APP_KEY}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=account_info.read files.content.read files.content.write`;
+        const authUrl = `https://www.dropbox.com/oauth2/authorize?client_id=${DROPBOX_APP_KEY}&response_type=token&redirect_uri=${encodeURIComponent(DROPBOX_REDIRECT_URI)}`;
         
         window.location.href = authUrl;
     });
