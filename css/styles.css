@@ -3,6 +3,9 @@ body {
     margin: 0;
     padding: 0;
     background-color: #f4f4f4;
+    max-width: 80vw;
+    margin: 0 auto;
+    min-width: 320px;
 }
 
 header {
@@ -36,16 +39,23 @@ header .acciones {
     overflow: hidden;
 }
 
+/* Estilo normal de la categoría */
 .category {
-    background: #ffffff;
-    border: 1px solid #dddddd;
-    border-radius: 5px;
-    margin: 20px 0;
-    padding: 15px;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
+    transition: border-color 0.2s, background 0.2s;
 }
 
 .category h2 {
     margin-top: 0;
+}
+
+/* Estilo cuando se está arrastrando una tarea encima */
+.category.drag-over {
+    border-color: #35424a;
+    background: #e6f0fa;
 }
 
 .task {
@@ -252,4 +262,12 @@ footer {
 .boton-peligro:hover {
     background-color: #c9302c;
     border-color: #ac2925;
+}
+
+/* Opcional: solo aplicar en pantallas grandes */
+@media (min-width: 900px) {
+    body {
+        max-width: 80vw;
+        margin: 2em auto;
+    }
 }

@@ -122,10 +122,13 @@ function renderTasks() {
         if (category === 'archivadas') continue;
         const categoryDiv = document.createElement('div');
         categoryDiv.className = 'category';
-        
+        categoryDiv.setAttribute('data-category', category); // <-- Añade esta línea
+
         // Se ha eliminado el botón de la papelera de esta plantilla
         let tasksHTML = tasks.map(task => `
-            <div class="task ${task.completed ? 'completed' : ''}">
+            <div class="task ${task.completed ? 'completed' : ''}" 
+                 draggable="true" 
+                 ondragstart="onDragStart(event, '${task.id}')">
                 <input type="checkbox" onchange="toggleTaskCompletion('${task.id}')" ${task.completed ? 'checked' : ''}>
                 <span>${convertirEnlaces(task.task)}</span>
                 <select onchange="moveTask('${task.id}', this.value)">
@@ -139,6 +142,28 @@ function renderTasks() {
         taskContainer.appendChild(categoryDiv);
     }
 }
+
+// Añade estos handlers globales:
+window.onDragStart = function(event, taskId) {
+    event.dataTransfer.setData('text/plain', taskId);
+};
+
+document.querySelectorAll('.category').forEach(catDiv => {
+    catDiv.addEventListener('dragover', e => {
+        e.preventDefault();
+        catDiv.classList.add('drag-over');
+    });
+    catDiv.addEventListener('dragleave', () => {
+        catDiv.classList.remove('drag-over');
+    });
+    catDiv.addEventListener('drop', function(e) {
+        e.preventDefault();
+        catDiv.classList.remove('drag-over');
+        const taskId = e.dataTransfer.getData('text/plain');
+        const newCategory = this.getAttribute('data-category');
+        moveTask(taskId, newCategory);
+    });
+});
 
 // --- LÓGICA DE SINCRONIZACIÓN CON DROPBOX (CORREGIDA CON FUSIÓN) ---
 function updateDropboxButtons() {
