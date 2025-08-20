@@ -27,6 +27,14 @@ function showToast(message, type = 'success') {
     }, 3000);
 }
 
+function convertirEnlaces(texto) {
+    // Expresión regular para detectar URLs
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    return texto.replace(urlRegex, function(url) {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+    });
+}
+
 // --- GESTIÓN DE DATOS LOCALES ---
 function saveCategoriesToLocalStorage() { localStorage.setItem('categories', JSON.stringify(categories)); }
 function loadCategoriesFromLocalStorage() {
@@ -119,7 +127,7 @@ function renderTasks() {
         let tasksHTML = tasks.map(task => `
             <div class="task ${task.completed ? 'completed' : ''}">
                 <input type="checkbox" onchange="toggleTaskCompletion('${task.id}')" ${task.completed ? 'checked' : ''}>
-                <span>${task.task}</span>
+                <span>${convertirEnlaces(task.task)}</span>
                 <select onchange="moveTask('${task.id}', this.value)">
                     <option value="" disabled selected>Mover</option>
                     ${Object.keys(categoryNames).filter(c => c !== category).map(c => `<option value="${c}">${categoryNames[c]}</option>`).join('')}
