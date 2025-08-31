@@ -1,6 +1,13 @@
 document.addEventListener('DOMContentLoaded', function() {
     const archiveContainer = document.getElementById('archive-container');
 
+    function convertirEnlaces(texto) {
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        return texto.replace(urlRegex, function(url) {
+            return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+        });
+    }
+
     function renderArchivedTasks() {
         const allCategories = JSON.parse(localStorage.getItem('categories') || '{}');
         const archivedTasks = allCategories['archivadas'] || [];
@@ -19,7 +26,7 @@ document.addEventListener('DOMContentLoaded', function() {
             taskDiv.className = 'task';
             taskDiv.innerHTML = `
                 <input type="checkbox" ${taskObj.completed ? 'checked' : ''} disabled>
-                <span class="${taskObj.completed ? 'completed' : ''}">${taskObj.task}</span>
+                <span class="${taskObj.completed ? 'completed' : ''}">${convertirEnlaces(taskObj.task)}</span>
                 <button onclick="deletePermanently('${taskObj.id}')">Eliminar Permanentemente</button>
             `;
             archiveContainer.appendChild(taskDiv);

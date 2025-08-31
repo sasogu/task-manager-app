@@ -206,7 +206,7 @@ function renderTasks() {
             <div class="task ${task.completed ? 'completed' : ''}" draggable="true" data-id="${task.id}">
                 <input type="checkbox" onchange="toggleTaskCompletion('${task.id}')" ${task.completed ? 'checked' : ''}>
                 <span>
-                    ${task.task}
+                    ${convertirEnlaces(task.task)}
                     ${task.tags && task.tags.length ? `<small class="tags">[${task.tags.join(', ')}]</small>` : ''}
                 </span>
                 <select onchange="moveTask('${task.id}', this.value)">
