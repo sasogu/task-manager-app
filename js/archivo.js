@@ -57,6 +57,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // 4. Volver a renderizar la vista
                     renderArchivedTasks();
+                    // 5. Intentar sincronizar con Dropbox si hay sesión
+                    syncToDropboxFromArchive();
                 }
             }
         }
@@ -78,8 +80,40 @@ document.addEventListener('DOMContentLoaded', function() {
         allCategories['bandeja-de-entrada'].push(task);
         localStorage.setItem('categories', JSON.stringify(allCategories));
         renderArchivedTasks();
+        // Intentar sincronizar con Dropbox si hay sesión
+        syncToDropboxFromArchive();
     }
 
     // Cargar las tareas al iniciar
     renderArchivedTasks();
+
+    // Sincronización básica a Dropbox desde la vista de archivo
+    async function syncToDropboxFromArchive() {
+        const token = localStorage.getItem('dropbox_access_token');
+        if (!token) return;
+        try {
+            const categories = JSON.parse(localStorage.getItem('categories') || '{}');
+            const deletedTasks = JSON.parse(localStorage.getItem('deletedTasks') || '[]');
+            const payload = { categories, deletedTasks, lastSync: new Date().toISOString() };
+            const res = await fetch('https://content.dropboxapi.com/2/files/upload', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/octet-stream',
+                    'Dropbox-API-Arg': JSON.stringify({ path: '/tareas.json', mode: 'overwrite' })
+                },
+                body: JSON.stringify(payload, null, 2)
+            });
+            if (res.status === 401) {
+                // Token inválido; limpiar para que index gestione reconexión
+                localStorage.removeItem('dropbox_access_token');
+                console.warn('Dropbox: token inválido al sincronizar desde archivo.');
+            } else if (!res.ok) {
+                const t = await res.text();
+                console.warn('Dropbox: error de subida desde archivo:', res.status, t);
+            }
+        } catch (err) {
+            console.warn('Dropbox: fallo de red en sync desde archivo:', err);
+        }
+    }
 });
