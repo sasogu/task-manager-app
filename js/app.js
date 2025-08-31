@@ -158,9 +158,11 @@ function toggleTaskCompletion(taskId) {
         task.lastModified = new Date().toISOString();
         if (task.completed && taskData.category !== 'archivadas') {
             const [movedTask] = categories[taskData.category].splice(taskData.taskIndex, 1);
+            movedTask.archivedOn = new Date().toISOString();
             categories['archivadas'].push(movedTask);
         } else if (!task.completed && taskData.category === 'archivadas') {
             const [movedTask] = categories[taskData.category].splice(taskData.taskIndex, 1);
+            delete movedTask.archivedOn;
             categories['bandeja-de-entrada'].push(movedTask);
         }
         saveCategoriesToLocalStorage();
@@ -450,6 +452,10 @@ function mergeTasks(localCategories, remoteCategories, deletedIdsSet) {
             mergedCategories[task.category].push(finalTask);
         }
     }
+    // Orden determinista por lastModified (más recientes primero)
+    Object.keys(mergedCategories).forEach(cat => {
+        mergedCategories[cat].sort((a, b) => new Date(b.lastModified || 0) - new Date(a.lastModified || 0));
+    });
     return mergedCategories;
 }
 

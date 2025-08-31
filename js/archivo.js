@@ -11,17 +11,21 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderArchivedTasks() {
         const allCategories = JSON.parse(localStorage.getItem('categories') || '{}');
         const archivedTasks = allCategories['archivadas'] || [];
-        
-        archivedTasks.reverse(); // Mostrar las últimas primero
+        // Orden estable: más recientes primero por archivedOn (si existe) o lastModified
+        const view = archivedTasks.slice().sort((a, b) => {
+            const aTime = new Date(a.archivedOn || a.lastModified || 0).getTime();
+            const bTime = new Date(b.archivedOn || b.lastModified || 0).getTime();
+            return bTime - aTime;
+        });
 
         archiveContainer.innerHTML = '';
 
-        if (archivedTasks.length === 0) {
+        if (view.length === 0) {
             archiveContainer.innerHTML = '<p>No hay tareas archivadas.</p>';
             return;
         }
 
-        archivedTasks.forEach(taskObj => {
+        view.forEach(taskObj => {
             const taskDiv = document.createElement('div');
             taskDiv.className = 'task';
             taskDiv.innerHTML = `
