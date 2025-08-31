@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', function() {
             taskDiv.innerHTML = `
                 <input type="checkbox" ${taskObj.completed ? 'checked' : ''} disabled>
                 <span class="${taskObj.completed ? 'completed' : ''}">${convertirEnlaces(taskObj.task)}</span>
+                <button onclick="unarchiveTask('${taskObj.id}')">Desarchivar</button>
                 <button onclick="deletePermanently('${taskObj.id}')">Eliminar Permanentemente</button>
             `;
             archiveContainer.appendChild(taskDiv);
@@ -59,6 +60,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         }
+    }
+
+    // Desarchivar: mover a Bandeja de Entrada y marcar como no completada
+    window.unarchiveTask = function(taskId) {
+        const allCategories = JSON.parse(localStorage.getItem('categories') || '{}');
+        const archived = allCategories['archivadas'];
+        if (!Array.isArray(archived)) return;
+        const idx = archived.findIndex(t => t.id === taskId);
+        if (idx === -1) return;
+        const [task] = archived.splice(idx, 1);
+        task.completed = false;
+        task.lastModified = new Date().toISOString();
+        if (!Array.isArray(allCategories['bandeja-de-entrada'])) {
+            allCategories['bandeja-de-entrada'] = [];
+        }
+        allCategories['bandeja-de-entrada'].push(task);
+        localStorage.setItem('categories', JSON.stringify(allCategories));
+        renderArchivedTasks();
     }
 
     // Cargar las tareas al iniciar

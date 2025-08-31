@@ -41,6 +41,48 @@ function showToast(message, type = 'success') {
     }, 3000);
 }
 
+// Modal de confirmación personalizado (Promise-based)
+function showConfirm(message, acceptLabel = 'Aceptar', cancelLabel = 'Cancelar') {
+    const modal = document.getElementById('confirm-modal');
+    const msgEl = document.getElementById('confirm-message');
+    const acceptBtn = document.getElementById('confirm-accept');
+    const cancelBtn = document.getElementById('confirm-cancel');
+    if (!modal || !msgEl || !acceptBtn || !cancelBtn) {
+        // Fallback de seguridad si el modal no existe
+        return Promise.resolve(window.confirm(message));
+    }
+
+    msgEl.textContent = message;
+    acceptBtn.textContent = acceptLabel;
+    cancelBtn.textContent = cancelLabel;
+    modal.style.display = 'flex';
+
+    return new Promise((resolve) => {
+        const cleanup = () => {
+            modal.style.display = 'none';
+            acceptBtn.removeEventListener('click', onAccept);
+            cancelBtn.removeEventListener('click', onCancel);
+            modal.removeEventListener('click', onBackdrop);
+            document.removeEventListener('keydown', onKey);
+        };
+        const onAccept = () => { cleanup(); resolve(true); };
+        const onCancel = () => { cleanup(); resolve(false); };
+        const onBackdrop = (e) => { if (e.target === modal) { cleanup(); resolve(false); } };
+        const onKey = (e) => {
+            if (e.key === 'Escape') { cleanup(); resolve(false); }
+            if (e.key === 'Enter') { cleanup(); resolve(true); }
+        };
+
+        acceptBtn.addEventListener('click', onAccept);
+        cancelBtn.addEventListener('click', onCancel);
+        modal.addEventListener('click', onBackdrop);
+        document.addEventListener('keydown', onKey);
+
+        // Intentar enfocar el botón de aceptar para rapidez
+        setTimeout(() => acceptBtn.focus(), 0);
+    });
+}
+
 function convertirEnlaces(texto) {
     // Expresión regular para detectar URLs
     const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -89,16 +131,23 @@ function addTask(category, taskName, tags = []) {
     if (accessToken) syncToDropbox(false);
 }
 
-function removeTask(taskId) {
+async function removeTask(taskId) {
     const taskData = findTask(taskId);
-    if (taskData) {
-        const [removedTask] = categories[taskData.category].splice(taskData.taskIndex, 1);
-        deletedTasks.push({ ...removedTask, deletedOn: new Date().toISOString() });
-        localStorage.setItem('deletedTasks', JSON.stringify(deletedTasks));
-        saveCategoriesToLocalStorage();
-        renderTasks();
-        if (accessToken) syncToDropbox(false);
-    }
+    if (!taskData) return;
+
+    const taskTitle = (taskData.task && taskData.task.task) ? taskData.task.task : '';
+    const msg = taskTitle
+        ? `¿Estás seguro de que quieres eliminar la tarea "${taskTitle}"?`
+        : '¿Estás seguro de que quieres eliminar esta tarea?';
+    const confirmed = await showConfirm(msg, 'Eliminar', 'Cancelar');
+    if (!confirmed) return;
+
+    const [removedTask] = categories[taskData.category].splice(taskData.taskIndex, 1);
+    deletedTasks.push({ ...removedTask, deletedOn: new Date().toISOString() });
+    localStorage.setItem('deletedTasks', JSON.stringify(deletedTasks));
+    saveCategoriesToLocalStorage();
+    renderTasks();
+    if (accessToken) syncToDropbox(false);
 }
 
 function toggleTaskCompletion(taskId) {

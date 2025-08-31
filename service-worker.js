@@ -1,4 +1,7 @@
-const CACHE_NAME = 'task-manager-cache-v1.3.38'; // Versión incrementada
+const CACHE_NAME = 'task-manager-cache-v1.3.39'; // Versión incrementada
+// URL base del scope del SW (e.g., https://sasogu.github.io/task-manager-app/)
+const SCOPE_BASE = self.registration?.scope || self.location.origin + '/';
+const OFFLINE_FALLBACK_URL = new URL('index.html', SCOPE_BASE).toString();
 const urlsToCache = [
   'https://sasogu.github.io/task-manager-app/',
   'https://sasogu.github.io/task-manager-app/index.html',
@@ -13,6 +16,7 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll(urlsToCache))
+      .then(() => self.skipWaiting())
   );
 });
 
@@ -30,9 +34,33 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  // Navegación de documentos (HTML): red primero con fallback offline
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      (async () => {
+        try {
+          const networkResponse = await fetch(event.request);
+          // Opcional: cachear navegaciones exitosas
+          const cache = await caches.open(CACHE_NAME);
+          cache.put(event.request, networkResponse.clone());
+          return networkResponse;
+        } catch (err) {
+          // Fallback a index.html en caché para experiencia offline
+          const cachedShell = await caches.match(OFFLINE_FALLBACK_URL, { ignoreSearch: true });
+          if (cachedShell) return cachedShell;
+          // Como último recurso, intenta cualquier caché previo de la navegación
+          const anyCached = await caches.match(event.request, { ignoreSearch: true });
+          if (anyCached) return anyCached;
+          throw err;
+        }
+      })()
+    );
+    return;
+  }
+
   // Para las peticiones GET a nuestros propios archivos, usar estrategia de caché
   event.respondWith(
-    caches.match(event.request).then(cachedResponse => {
+    caches.match(event.request, { ignoreSearch: true }).then(cachedResponse => {
       // Si está en caché, devolverlo
       if (cachedResponse) {
         return cachedResponse;
@@ -44,6 +72,14 @@ self.addEventListener('fetch', event => {
           cache.put(event.request, networkResponse.clone());
           return networkResponse;
         });
+      }).catch(async () => {
+        // Fallback si la red falla: intentar el shell offline para documentos
+        if (event.request.destination === 'document') {
+          const cachedShell = await caches.match(OFFLINE_FALLBACK_URL, { ignoreSearch: true });
+          if (cachedShell) return cachedShell;
+        }
+        // En otros casos, no hay fallback razonable
+        return Response.error();
       });
     })
   );
@@ -60,7 +96,7 @@ self.addEventListener('activate', event => {
             return caches.delete(cacheName);
           }
         })
-      );
+      ).then(() => self.clients.claim());
     })
   );
 });
