@@ -258,6 +258,28 @@ footer {
     flex-direction: column;
     gap: 10px;
 }
+
+/* Chips de etiquetas rápidas */
+.tag-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+}
+.tag-chip {
+    background: #eef2f7;
+    color: #35424a;
+    border: 1px solid #cfd8e3;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    cursor: pointer;
+}
+.tag-chip.selected {
+    background: #35424a;
+    color: white;
+    border-color: #35424a;
+}
 .grupo-botones h3 {
     margin: 0 0 5px 0;
     font-size: 16px;

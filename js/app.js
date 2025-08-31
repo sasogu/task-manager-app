@@ -4,8 +4,21 @@
 
 // --- ESTADO GLOBAL DE LA APLICACIÓN ---
 const categories = {
-    "bandeja-de-entrada": [], "prioritaria": [], "proximas": [], "algun-dia": [], "archivadas": []
+    "bandeja-de-entrada": [],
+    "prioritaria": [],
+    "proximas": [],
+    "algun-dia": [],
+    "archivadas": []
 };
+
+const categoryNames = {
+    "bandeja-de-entrada": "Bandeja de Entrada",
+    "prioritaria": "Prioritaria",
+    "proximas": "Próximas",
+    "algun-dia": "Algún Día",
+    "archivadas": "Archivadas"
+};
+
 const deletedTasks = JSON.parse(localStorage.getItem('deletedTasks') || '[]');
 const DROPBOX_APP_KEY = 'f21fzdjtng58vcg';
 let accessToken = localStorage.getItem('dropbox_access_token');
@@ -62,8 +75,14 @@ function findTask(taskId) {
     return null;
 }
 
-function addTask(category, taskName) {
-    const newTask = { id: generateUUID(), task: taskName, completed: false, lastModified: new Date().toISOString() };
+function addTask(category, taskName, tags = []) {
+    const newTask = {
+        id: generateUUID(),
+        task: taskName,
+        completed: false,
+        lastModified: new Date().toISOString(),
+        tags: tags
+    };
     categories[category].push(newTask);
     saveCategoriesToLocalStorage();
     renderTasks();
@@ -113,58 +132,194 @@ function moveTask(taskId, newCategory) {
     }
 }
 
+// --- EDICIÓN DE TAREAS ---
+function updateTask(taskId, newName, newCategory, newTags = []) {
+    const data = findTask(taskId);
+    if (!data) return;
+    const { task, category } = data;
+    task.task = newName;
+    task.tags = Array.isArray(newTags) ? newTags : [];
+    task.lastModified = new Date().toISOString();
+    if (newCategory && newCategory !== category && categories[newCategory]) {
+        categories[category].splice(data.taskIndex, 1);
+        categories[newCategory].push(task);
+    }
+    saveCategoriesToLocalStorage();
+    renderTasks();
+    if (accessToken) syncToDropbox(false);
+}
+
+function openEditTask(taskId) {
+    const data = findTask(taskId);
+    if (!data) return;
+    const popup = document.getElementById('popup-tarea');
+    const form = document.getElementById('popup-task-form');
+    const taskNameInput = document.getElementById('popup-task-name');
+    const categorySelect = document.getElementById('popup-task-category');
+    const tagsInput = document.getElementById('popup-task-tags');
+    if (!popup || !form || !taskNameInput || !categorySelect || !tagsInput) return;
+
+    // Prefill
+    taskNameInput.value = data.task.task || '';
+    categorySelect.value = data.category;
+    tagsInput.value = (data.task.tags || []).join(', ');
+
+    // Switch form to edit mode
+    form.dataset.mode = 'edit';
+    form.dataset.editingId = taskId;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.textContent = 'Guardar';
+
+    popup.style.display = 'flex';
+    taskNameInput.focus();
+    updateTagDatalist();
+    renderTagSuggestions();
+}
+
+function resetPopupFormMode() {
+    const form = document.getElementById('popup-task-form');
+    if (!form) return;
+    form.dataset.mode = 'add';
+    form.dataset.editingId = '';
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.textContent = 'Añadir';
+}
+
 // --- RENDERIZADO EN EL DOM (SIN BOTÓN DE ELIMINAR) ---
 function renderTasks() {
     const taskContainer = document.getElementById('task-container');
+    const filterTagSelect = document.getElementById('filter-tag');
+    const filterTag = filterTagSelect ? filterTagSelect.value : '';
     taskContainer.innerHTML = '';
-    const categoryNames = { "bandeja-de-entrada": "Bandeja de Entrada", "prioritaria": "Prioritaria", "proximas": "Próximas", "algun-dia": "Algún Día" };
 
     for (const [category, tasks] of Object.entries(categories)) {
         if (category === 'archivadas') continue;
         const categoryDiv = document.createElement('div');
         categoryDiv.className = 'category';
-        categoryDiv.setAttribute('data-category', category);
 
-        let tasksHTML = tasks.map(task => `
-            <div class="task ${task.completed ? 'completed' : ''}" 
-                 draggable="true" 
-                 ondragstart="onDragStart(event, '${task.id}')">
+        // Filtrar tareas por etiqueta seleccionada
+        let filteredTasks = filterTag
+            ? tasks.filter(task => task.tags && task.tags.includes(filterTag))
+            : tasks;
+
+        let tasksHTML = filteredTasks.map(task => `
+            <div class="task ${task.completed ? 'completed' : ''}" draggable="true" data-id="${task.id}">
                 <input type="checkbox" onchange="toggleTaskCompletion('${task.id}')" ${task.completed ? 'checked' : ''}>
-                <span>${convertirEnlaces(task.task)}</span>
+                <span>
+                    ${task.task}
+                    ${task.tags && task.tags.length ? `<small class="tags">[${task.tags.join(', ')}]</small>` : ''}
+                </span>
                 <select onchange="moveTask('${task.id}', this.value)">
                     <option value="" disabled selected>Mover</option>
                     ${Object.keys(categoryNames).filter(c => c !== category).map(c => `<option value="${c}">${categoryNames[c]}</option>`).join('')}
                 </select>
+                <button class="edit-btn" onclick="openEditTask('${task.id}')">✏️</button>
+                <button class="delete-btn" onclick="removeTask('${task.id}')">🗑️</button>
             </div>
         `).join('');
 
         categoryDiv.innerHTML = `<h3>${categoryNames[category]}</h3><div class="task-list">${tasksHTML}</div>`;
+        // Añadir manejadores de DnD a cada categoría renderizada
+        categoryDiv.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            categoryDiv.classList.add('drag-over');
+        });
+        categoryDiv.addEventListener('dragleave', function() {
+            categoryDiv.classList.remove('drag-over');
+        });
+        categoryDiv.addEventListener('drop', function(e) {
+            e.preventDefault();
+            categoryDiv.classList.remove('drag-over');
+            const taskId = e.dataTransfer.getData('text/plain');
+            const newCategory = Object.keys(categoryNames).find(
+                key => categoryDiv.querySelector('h3').textContent === categoryNames[key]
+            );
+            if (taskId && newCategory) moveTask(taskId, newCategory);
+        });
         taskContainer.appendChild(categoryDiv);
     }
 
-    // --- Añade los listeners DESPUÉS de renderizar ---
-    document.querySelectorAll('.category').forEach(catDiv => {
-        catDiv.addEventListener('dragover', e => {
-            e.preventDefault();
-            catDiv.classList.add('drag-over');
-        });
-        catDiv.addEventListener('dragleave', () => {
-            catDiv.classList.remove('drag-over');
-        });
-        catDiv.addEventListener('drop', function(e) {
-            e.preventDefault();
-            catDiv.classList.remove('drag-over');
-            const taskId = e.dataTransfer.getData('text/plain');
-            const newCategory = this.getAttribute('data-category');
-            moveTask(taskId, newCategory);
-        });
-    });
+    // Actualiza filtros y autocompletado en cada render
+    updateTagFilterDropdown();
+    updateTagDatalist();
 }
 
 // Handler global para el arrastre
 window.onDragStart = function(event, taskId) {
     event.dataTransfer.setData('text/plain', taskId);
 };
+
+// --- UTILIDADES DE ETIQUETAS (VISIBLES GLOBALMENTE) ---
+function getAllTags() {
+    const tagsSet = new Set();
+    Object.values(categories).forEach(tasks => {
+        tasks.forEach(task => {
+            if (task.tags && Array.isArray(task.tags)) {
+                task.tags.forEach(tag => tagsSet.add(tag));
+            }
+        });
+    });
+    return Array.from(tagsSet).sort();
+}
+
+function updateTagFilterDropdown() {
+    const filterTagSelect = document.getElementById('filter-tag');
+    if (!filterTagSelect) return;
+    const tags = getAllTags();
+    filterTagSelect.innerHTML = '<option value="">-- Filtrar por etiqueta --</option>' +
+        tags.map(tag => `<option value="${tag}">${tag}</option>`).join('');
+}
+
+// Autocompletado para input de etiquetas (datalist)
+function updateTagDatalist() {
+    const datalist = document.getElementById('all-tags-list');
+    if (!datalist) return;
+    const tags = getAllTags();
+    datalist.innerHTML = tags.map(t => `<option value="${t}"></option>`).join('');
+}
+
+// Chips de sugerencias bajo el input de etiquetas
+function renderTagSuggestions() {
+    const container = document.getElementById('tag-suggestions');
+    const tagsInput = document.getElementById('popup-task-tags');
+    if (!container || !tagsInput) return;
+    const all = getAllTags();
+    const current = new Set(parseTagsInputValue(tagsInput.value));
+    container.innerHTML = all.map(tag => {
+        const sel = current.has(tag) ? 'selected' : '';
+        return `<span class="tag-chip ${sel}" data-tag="${tag}">#${tag}</span>`;
+    }).join('');
+    container.querySelectorAll('.tag-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            const tag = chip.dataset.tag;
+            toggleTagInInput(tag);
+            renderTagSuggestions();
+        });
+    });
+}
+
+function parseTagsInputValue(value) {
+    return value.split(',')
+        .map(t => t.trim())
+        .filter(t => t.length > 0)
+        .filter((v, i, a) => a.indexOf(v) === i);
+}
+
+function setTagsInputFromArray(arr) {
+    const tagsInput = document.getElementById('popup-task-tags');
+    if (!tagsInput) return;
+    const unique = Array.from(new Set(arr.map(t => t.trim()).filter(Boolean)));
+    tagsInput.value = unique.join(', ');
+}
+
+function toggleTagInInput(tag) {
+    const tagsInput = document.getElementById('popup-task-tags');
+    if (!tagsInput) return;
+    const list = parseTagsInputValue(tagsInput.value);
+    const idx = list.indexOf(tag);
+    if (idx === -1) list.push(tag); else list.splice(idx, 1);
+    setTagsInputFromArray(list);
+}
 
 // --- LÓGICA DE SINCRONIZACIÓN CON DROPBOX (CORREGIDA CON FUSIÓN) ---
 function updateDropboxButtons() {
@@ -418,21 +573,62 @@ document.addEventListener('DOMContentLoaded', function() {
     const abrirPopupBtn = document.getElementById('abrir-popup-tarea');
     const cancelarPopupBtn = document.getElementById('cancelar-popup');
     const popupForm = document.getElementById('popup-task-form');
-    if (abrirPopupBtn) abrirPopupBtn.addEventListener('click', () => { popup.style.display = 'flex'; document.getElementById('popup-task-name').focus(); });
-    if (cancelarPopupBtn) cancelarPopupBtn.addEventListener('click', () => { popup.style.display = 'none'; });
-    window.addEventListener('click', (e) => { if (e.target == popup) popup.style.display = 'none'; });
-    if (popupForm) popupForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const input = document.getElementById('popup-task-name');
-        const select = document.getElementById('popup-task-category');
-        if (input.value.trim()) {
-            addTask(select.value, input.value.trim());
-            input.value = '';
-            popup.style.display = 'none';
-        } else {
-            showToast('Por favor, ingresa un nombre de tarea.', 'error');
-        }
+    const taskNameInput = document.getElementById('popup-task-name');
+    const categorySelect = document.getElementById('popup-task-category');
+    const tagsInput = document.getElementById('popup-task-tags');
+
+    if (abrirPopupBtn) abrirPopupBtn.addEventListener('click', () => {
+        resetPopupFormMode();
+        popup.style.display = 'flex';
+        document.getElementById('popup-task-name').focus();
+        updateTagDatalist();
+        renderTagSuggestions();
     });
+    if (cancelarPopupBtn) cancelarPopupBtn.addEventListener('click', () => {
+        resetPopupFormMode();
+        popup.style.display = 'none';
+    });
+    window.addEventListener('click', (e) => { if (e.target == popup) popup.style.display = 'none'; });
+    if (popupForm) {
+        popupForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            let nombre = taskNameInput.value.trim();
+            const categoria = categorySelect.value;
+            let tags = tagsInput.value
+                .split(',')
+                .map(t => t.trim())
+                .filter(t => t.length > 0);
+
+            // Capturar hashtags del nombre como etiquetas adicionales y limpiar el nombre
+            const hashtagRegex = /#([\p{L}\d_-]+)/gu;
+            const extra = Array.from(nombre.matchAll(hashtagRegex)).map(m => m[1]);
+            if (extra.length) {
+                nombre = nombre.replace(/#[\p{L}\d_-]+/gu, '').replace(/\s{2,}/g, ' ').trim();
+                tags = Array.from(new Set([...tags, ...extra]));
+            }
+
+            if (!nombre) {
+                showToast('Por favor, ingresa un nombre de tarea.', 'error');
+                return;
+            }
+
+            // Modo edición vs. alta
+            const isEdit = popupForm.dataset.mode === 'edit';
+            if (isEdit) {
+                const editingId = popupForm.dataset.editingId;
+                updateTask(editingId, nombre, categoria, tags);
+            } else {
+                addTask(categoria, nombre, tags);
+            }
+
+            taskNameInput.value = '';
+            tagsInput.value = '';
+            resetPopupFormMode();
+            popupForm.closest('.modal').style.display = 'none';
+        });
+        // Actualizar chips al teclear manualmente
+        tagsInput.addEventListener('input', renderTagSuggestions);
+    }
 
     // Lógica de Dropbox
     document.getElementById('dropbox-login')?.addEventListener('click', () => {
@@ -502,8 +698,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Iniciar el flujo de autenticación de Dropbox
     handleAuthCallback();
+
+    document.getElementById('filter-tag')?.addEventListener('change', renderTasks);
+
+    // Drag & Drop para tareas
+    document.addEventListener('dragstart', function(e) {
+        const taskEl = e.target.closest?.('.task');
+        if (taskEl && taskEl.dataset.id) {
+            e.dataTransfer.setData('text/plain', taskEl.dataset.id);
+        }
+    });
+
+    // getAllTags y updateTagFilterDropdown ahora son globales
 });
-// (Asegúrate de que las implementaciones de updateDropboxButtons, validateToken y handleAuthCallback estén completas aquí)
-
-
-
