@@ -91,6 +91,8 @@ header .acciones { flex-direction: row; flex-wrap: wrap; }
     display: flex;
     align-items: flex-start;
     gap: 10px;
+    /* Mostrar acciones debajo del texto también en escritorio */
+    flex-wrap: wrap;
 }
 .task .task-main {
   display: flex;
@@ -98,13 +100,20 @@ header .acciones { flex-direction: row; flex-wrap: wrap; }
   gap: 10px;
   flex: 1 1 auto;
   min-width: 0;
+  /* Ocupa toda la línea superior para que el texto tenga ancho completo */
+  flex-basis: 100%;
 }
 .task .task-actions {
-  display: flex;
+  /* Ocupa una nueva línea bajo el contenido principal */
+  flex-basis: 100%;
+  width: 100%;
+  margin-left: 0;
+  margin-top: 6px;
+  /* Disposición similar a móvil: selector ancho + 2 botones */
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  column-gap: 8px;
   align-items: center;
-  gap: 8px;
-  margin-left: auto;
-  flex-wrap: nowrap;
   overflow: visible;
 }
 .task .task-actions > * {
@@ -154,7 +163,7 @@ button:hover { background: #1f2937; }
   border: none;
   padding: 6px 8px;
 }
-.task .btn-label { display: none; }
+.task .btn-label { display: inline; margin-left: 4px; }
 .task .edit-btn:hover { color: var(--color-primary); }
 .task .delete-btn:hover { color: #dc2626; }
 
@@ -164,6 +173,11 @@ button:hover { background: #1f2937; }
   border-radius: 8px;
   padding: 6px 10px;
   min-width: 120px; /* asegura visibilidad del selector */
+}
+/* Hacer que el selector dentro de acciones ocupe todo el ancho disponible */
+.task .task-actions select {
+  width: 100%;
+  min-width: 0;
 }
 
 .task .tags { display: block; margin-top: 4px; }
@@ -315,7 +329,8 @@ input[type="text"], select {
         font-size: 16px;
         padding: 8px 10px;
     }
-    .task .btn-label { display: inline; margin-left: 4px; }
+    /* En móvil, ocultar texto y dejar solo iconos */
+    .task .btn-label { display: none; }
     header { 
         flex-direction: column; 
         align-items: stretch; 
