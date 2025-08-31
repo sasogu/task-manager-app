@@ -253,17 +253,21 @@ function renderTasks() {
 
         let tasksHTML = filteredTasks.map(task => `
             <div class="task ${task.completed ? 'completed' : ''}" draggable="true" data-id="${task.id}">
-                <input type="checkbox" onchange="toggleTaskCompletion('${task.id}')" ${task.completed ? 'checked' : ''}>
-                <span>
-                    ${convertirEnlaces(task.task)}
-                    ${task.tags && task.tags.length ? `<small class="tags">${task.tags.map(t => `<span class=\"tag-chip in-task\">#${t}</span>`).join(' ')}</small>` : ''}
-                </span>
-                <select onchange="moveTask('${task.id}', this.value)">
-                    <option value="" disabled selected>Mover</option>
-                    ${Object.keys(categoryNames).filter(c => c !== category).map(c => `<option value="${c}">${categoryNames[c]}</option>`).join('')}
-                </select>
-                <button class="edit-btn" onclick="openEditTask('${task.id}')">✏️</button>
-                <button class="delete-btn" onclick="removeTask('${task.id}')">🗑️</button>
+                <div class="task-main">
+                    <input type="checkbox" onchange="toggleTaskCompletion('${task.id}')" ${task.completed ? 'checked' : ''}>
+                    <span>
+                        ${convertirEnlaces(task.task)}
+                        ${task.tags && task.tags.length ? `<small class="tags">${task.tags.map(t => `<span class=\"tag-chip in-task\">#${t}</span>`).join(' ')}</small>` : ''}
+                    </span>
+                </div>
+                <div class="task-actions">
+                    <select aria-label="Mover tarea" onchange="moveTask('${task.id}', this.value)">
+                        <option value="" disabled selected>Mover</option>
+                        ${Object.keys(categoryNames).filter(c => c !== category).map(c => `<option value="${c}">${categoryNames[c]}</option>`).join('')}
+                    </select>
+                    <button class="edit-btn" aria-label="Editar tarea" onclick="openEditTask('${task.id}')">✏️ <span class="btn-label">Editar</span></button>
+                    <button class="delete-btn" aria-label="Eliminar tarea" onclick="removeTask('${task.id}')">🗑️ <span class="btn-label">Eliminar</span></button>
+                </div>
             </div>
         `).join('');
 

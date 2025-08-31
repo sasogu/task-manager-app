@@ -92,6 +92,24 @@ header .acciones { flex-direction: row; flex-wrap: wrap; }
     align-items: flex-start;
     gap: 10px;
 }
+.task .task-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.task .task-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-wrap: nowrap;
+  overflow: visible;
+}
+.task .task-actions > * {
+  flex: 0 0 auto; /* no encoger controles */
+}
 .task:hover { background: #f3f4f6; }
 
 
@@ -136,6 +154,7 @@ button:hover { background: #1f2937; }
   border: none;
   padding: 6px 8px;
 }
+.task .btn-label { display: none; }
 .task .edit-btn:hover { color: var(--color-primary); }
 .task .delete-btn:hover { color: #dc2626; }
 
@@ -144,6 +163,7 @@ button:hover { background: #1f2937; }
   border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 6px 10px;
+  min-width: 120px; /* asegura visibilidad del selector */
 }
 
 .task .tags { display: block; margin-top: 4px; }
@@ -273,6 +293,29 @@ input[type="text"], select {
 }
 
 @media (max-width: 600px) {
+    /* En móvil, colocar acciones debajo del texto */
+    .task {
+        flex-wrap: wrap;
+    }
+    .task .task-actions {
+        flex-basis: 100%;
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        column-gap: 8px;
+        align-items: center;
+        margin-left: 0;
+        margin-top: 6px;
+        width: 100%;
+    }
+    .task .task-actions select {
+        width: 100%;
+        min-width: 0;
+    }
+    .task .edit-btn, .task .delete-btn {
+        font-size: 16px;
+        padding: 8px 10px;
+    }
+    .task .btn-label { display: inline; margin-left: 4px; }
     header { 
         flex-direction: column; 
         align-items: stretch; 

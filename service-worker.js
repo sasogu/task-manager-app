@@ -1,4 +1,4 @@
-const CACHE_NAME = 'task-manager-cache-v1.3.39'; // Versión incrementada
+const CACHE_NAME = 'task-manager-cache-v1.3.40'; // Versión incrementada
 // URL base del scope del SW (e.g., https://sasogu.github.io/task-manager-app/)
 const SCOPE_BASE = self.registration?.scope || self.location.origin + '/';
 const OFFLINE_FALLBACK_URL = new URL('index.html', SCOPE_BASE).toString();
