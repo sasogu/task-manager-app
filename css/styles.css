@@ -30,6 +30,17 @@ header .acciones {
     display: flex;
     gap: 15px; /* Espacio entre los botones */
 }
+/* Evita que las reglas genéricas de .acciones alteren el header */
+header .acciones { flex-direction: row; flex-wrap: wrap; }
+/* En pantallas grandes, los botones del header no ocupan ancho completo */
+@media (min-width: 601px) {
+  header .acciones .boton-accion {
+    width: auto;
+    max-width: none;
+    flex: 1 1 0; /* Mismo ancho para ambos botones */
+    min-width: 180px; /* Evita que se encojan demasiado */
+  }
+}
 
 .container {
     width: 80%;
@@ -140,6 +151,10 @@ footer {
     align-items: center;
     gap: 8px; /* Espacio entre icono y texto */
     border: 1px solid transparent;
+    box-sizing: border-box;
+    text-decoration: none; /* Para <a> con estilo de botón */
+    min-height: 44px; /* Altura táctil consistente */
+    justify-content: center; /* Centrar contenido horizontalmente */
 }
 
 /* Estilo para el botón de acción principal */
@@ -192,6 +207,24 @@ footer {
 }
 
 @media (max-width: 600px) {
+    header { 
+        flex-direction: column; 
+        align-items: stretch; 
+        gap: 10px;
+        text-align: left;
+    }
+    header h1 { margin-bottom: 6px; }
+    header .acciones { 
+        width: 100%; 
+        justify-content: center; 
+        gap: 10px; 
+        flex-direction: column;
+    }
+    header .acciones .boton-accion { 
+        width: 100%; 
+        max-width: 100%; 
+    }
+
     .container {
         width: 98%;
         padding: 0 1%;
