@@ -1,4 +1,4 @@
-const CACHE_NAME = 'task-manager-cache-v1.3.51'; // Versión incrementada
+const CACHE_NAME = 'task-manager-cache-v1.3.54'; // Versión incrementada
 // URL base del scope del SW (funciona tanto en GitHub Pages como en localhost)
 const SCOPE_BASE = self.registration?.scope || self.location.origin + '/';
 const OFFLINE_FALLBACK_URL = new URL('index.html', SCOPE_BASE).toString();
@@ -7,9 +7,11 @@ const urlsToCache = [
   './',
   'index.html',
   'archivo.html',
+  'recordatorios.html',
   'css/styles.css',
   'js/app.js',
   'js/archivo.js',
+  'js/recordatorios.js',
   'manifest.json'
   // Nota: no precacheamos los iconos para acelerar la primera carga
 ];

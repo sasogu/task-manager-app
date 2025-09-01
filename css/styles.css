@@ -194,6 +194,10 @@ button:hover { background: #1f2937; }
   color: var(--color-muted);
   font-size: 12px;
 }
+/* Destacar recordatorios vencidos en la vista de recordatorios */
+.category.overdue .task .reminder-meta {
+  color: #dc2626; /* rojo para vencidos */
+}
 
 footer {
     text-align: center;
