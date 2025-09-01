@@ -433,6 +433,7 @@ function updateDropboxButtons() {
 // Compatibilidad: en algunos flujos se invoca este helper; si no existe, dejar como no-op
 function showReconnectDropboxBtn() { /* no-op: el botón de login ya queda visible al expirar */ }
 
+
 // Muestra/Oculta todo el bloque de sincronización si no hay conexión
 function updateSyncGroupVisibility() {
     const group = document.getElementById('sync-group');
@@ -760,8 +761,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const cleanPath = window.location.pathname.split('?')[0].split('#')[0]; // Eliminar parámetros y hash
         let redirectUri;
         
-        // Si estamos en index.html o en la raíz, usar la URL base
-        if (cleanPath.endsWith('index.html') || cleanPath === '/' || cleanPath === '') {
+        // Construir redirect de forma robusta para /, /dir/, y /dir/index.html
+        if (cleanPath.endsWith('index.html')) {
+            redirectUri = baseUrl + cleanPath.replace(/index\.html$/, '');
+        } else if (cleanPath === '/' || cleanPath === '') {
             redirectUri = baseUrl + '/';
         } else {
             redirectUri = baseUrl + cleanPath;
@@ -769,7 +772,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         console.log('🔍 URL de redirección:', redirectUri);
         
-        const authUrl = `https://www.dropbox.com/oauth2/authorize?client_id=${DROPBOX_APP_KEY}&response_type=token&redirect_uri=${encodeURIComponent(DROPBOX_REDIRECT_URI)}`;
+        const authUrl = `https://www.dropbox.com/oauth2/authorize?client_id=${DROPBOX_APP_KEY}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}`;
         
         window.location.href = authUrl;
     });
@@ -863,6 +866,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // getAllTags y updateTagFilterDropdown ahora son globales
     // Mostrar recordatorios vencidos al abrir la app
     checkDueRemindersAndAlertOnce();
+    // Ajustar visibilidad de sincronización según conectividad
+    updateSyncGroupVisibility();
+    window.addEventListener('online', updateSyncGroupVisibility);
+    window.addEventListener('offline', updateSyncGroupVisibility);
 });
 
 // Muestra un popup con recordatorios vencidos al abrir
