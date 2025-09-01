@@ -375,6 +375,18 @@ input[type="text"], select {
         font-size: 1.1em;
         margin-bottom: 18px;
     }
+
+    /* Colocar el popup de añadir tarea en la parte superior en móviles */
+    #popup-tarea {
+        align-items: flex-start; /* alinear arriba */
+        padding-top: 12px;       /* pequeño margen desde el borde superior */
+        overflow-y: auto;        /* permitir scroll si el contenido crece */
+    }
+    #popup-tarea .modal-content {
+        margin: 12px auto 20px;  /* evitar margen auto vertical que centra */
+        width: 94%;              /* un poco más ancho en móvil */
+        max-width: 520px;        /* tope razonable */
+    }
 }
 
 /* Estilos para Notificaciones Toast */

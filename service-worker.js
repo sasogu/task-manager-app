@@ -1,15 +1,18 @@
-const CACHE_NAME = 'task-manager-cache-v1.3.47'; // Versión incrementada
-// URL base del scope del SW (e.g., https://sasogu.github.io/task-manager-app/)
+const CACHE_NAME = 'task-manager-cache-v1.3.48'; // Versión incrementada
+// URL base del scope del SW (funciona tanto en GitHub Pages como en localhost)
 const SCOPE_BASE = self.registration?.scope || self.location.origin + '/';
 const OFFLINE_FALLBACK_URL = new URL('index.html', SCOPE_BASE).toString();
+// Usar rutas relativas al SW para que funcionen en cualquier host/path
 const urlsToCache = [
-  'https://sasogu.github.io/task-manager-app/',
-  'https://sasogu.github.io/task-manager-app/index.html',
-  'https://sasogu.github.io/task-manager-app/archivo.html', // AÑADIDO
-  'https://sasogu.github.io/task-manager-app/css/styles.css',
-  'https://sasogu.github.io/task-manager-app/js/app.js',
-  'https://sasogu.github.io/task-manager-app/js/archivo.js', // AÑADIDO
-  'https://sasogu.github.io/task-manager-app/manifest.json'
+  './',
+  'index.html',
+  'archivo.html',
+  'css/styles.css',
+  'js/app.js',
+  'js/archivo.js',
+  'manifest.json',
+  'icons/icon-192.png',
+  'icons/icon-512.png'
 ];
 
 self.addEventListener('install', event => {
@@ -45,12 +48,12 @@ self.addEventListener('fetch', event => {
           cache.put(event.request, networkResponse.clone());
           return networkResponse;
         } catch (err) {
-          // Fallback a index.html en caché para experiencia offline
-          const cachedShell = await caches.match(OFFLINE_FALLBACK_URL, { ignoreSearch: true });
-          if (cachedShell) return cachedShell;
-          // Como último recurso, intenta cualquier caché previo de la navegación
+          // Primero intentar servir la propia ruta desde caché
           const anyCached = await caches.match(event.request, { ignoreSearch: true });
           if (anyCached) return anyCached;
+          // Fallback al shell (index) en caché para experiencia offline
+          const cachedShell = await caches.match(OFFLINE_FALLBACK_URL, { ignoreSearch: true });
+          if (cachedShell) return cachedShell;
           throw err;
         }
       })()
