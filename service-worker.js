@@ -1,4 +1,4 @@
-const CACHE_NAME = 'task-manager-cache-v1.3.50'; // Versión incrementada
+const CACHE_NAME = 'task-manager-cache-v1.3.51'; // Versión incrementada
 // URL base del scope del SW (funciona tanto en GitHub Pages como en localhost)
 const SCOPE_BASE = self.registration?.scope || self.location.origin + '/';
 const OFFLINE_FALLBACK_URL = new URL('index.html', SCOPE_BASE).toString();
@@ -24,6 +24,7 @@ self.addEventListener('install', event => {
 
 // REEMPLAZA EL ANTIGUO 'fetch' LISTENER POR ESTE:
 self.addEventListener('fetch', event => {
+  const url = new URL(event.request.url);
   // Ignorar peticiones que no son GET (como POST a Dropbox)
   if (event.request.method !== 'GET') {
     event.respondWith(fetch(event.request));
@@ -33,6 +34,14 @@ self.addEventListener('fetch', event => {
   // Ignorar peticiones a dominios externos (como la API de Dropbox)
   if (!event.request.url.startsWith(self.location.origin)) {
     event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // Para manifest.json: usar red primero para ver cambios de atajos/íconos
+  if (url.pathname.endsWith('/manifest.json') || url.pathname.endsWith('manifest.json')) {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match(event.request, { ignoreSearch: true }))
+    );
     return;
   }
 
