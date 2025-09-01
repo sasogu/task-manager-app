@@ -117,13 +117,16 @@ function findTask(taskId) {
     return null;
 }
 
-function addTask(category, taskName, tags = []) {
+function addTask(category, taskName, tags = [], reminderAt = null) {
     const newTask = {
         id: generateUUID(),
         task: taskName,
         completed: false,
         lastModified: new Date().toISOString(),
-        tags: tags
+        tags: tags,
+        reminderAt: reminderAt, // ISO string o null
+        reminderDone: false,
+        triggerScheduledAt: null
     };
     categories[category].push(newTask);
     saveCategoriesToLocalStorage();
@@ -159,6 +162,7 @@ function toggleTaskCompletion(taskId) {
         if (task.completed && taskData.category !== 'archivadas') {
             const [movedTask] = categories[taskData.category].splice(taskData.taskIndex, 1);
             movedTask.archivedOn = new Date().toISOString();
+            movedTask.reminderDone = true;
             categories['archivadas'].push(movedTask);
         } else if (!task.completed && taskData.category === 'archivadas') {
             const [movedTask] = categories[taskData.category].splice(taskData.taskIndex, 1);
@@ -180,6 +184,7 @@ function moveTask(taskId, newCategory) {
         if (newCategory === 'archivadas') {
             task.completed = true;
             task.archivedOn = new Date().toISOString();
+            task.reminderDone = true;
         } else if (taskData.category === 'archivadas' && newCategory !== 'archivadas') {
             task.completed = false;
             delete task.archivedOn;
@@ -192,12 +197,17 @@ function moveTask(taskId, newCategory) {
 }
 
 // --- EDICIÓN DE TAREAS ---
-function updateTask(taskId, newName, newCategory, newTags = []) {
+function updateTask(taskId, newName, newCategory, newTags = [], newReminderAt = null) {
     const data = findTask(taskId);
     if (!data) return;
     const { task, category } = data;
     task.task = newName;
     task.tags = Array.isArray(newTags) ? newTags : [];
+    // Actualizar recordatorio
+    task.reminderAt = newReminderAt || null;
+    // Si se cambia la fecha, reiniciar el estado de disparo y reprogramar
+    task.reminderDone = false;
+    task.triggerScheduledAt = null;
     task.lastModified = new Date().toISOString();
     if (newCategory && newCategory !== category && categories[newCategory]) {
         categories[category].splice(data.taskIndex, 1);
@@ -224,12 +234,25 @@ function openEditTask(taskId) {
     const taskNameInput = document.getElementById('popup-task-name');
     const categorySelect = document.getElementById('popup-task-category');
     const tagsInput = document.getElementById('popup-task-tags');
+    const reminderInput = document.getElementById('popup-task-reminder');
     if (!popup || !form || !taskNameInput || !categorySelect || !tagsInput) return;
 
     // Prefill
     taskNameInput.value = data.task.task || '';
     categorySelect.value = data.category;
     tagsInput.value = (data.task.tags || []).join(', ');
+    if (reminderInput) {
+        // Convertir ISO a valor datetime-local (sin zona, formato YYYY-MM-DDTHH:mm)
+        const iso = data.task.reminderAt || '';
+        if (iso) {
+            const d = new Date(iso);
+            const pad = n => String(n).padStart(2, '0');
+            const local = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            reminderInput.value = local;
+        } else {
+            reminderInput.value = '';
+        }
+    }
 
     // Switch form to edit mode
     form.dataset.mode = 'edit';
@@ -276,6 +299,7 @@ function renderTasks() {
                     <span>
                         ${convertirEnlaces(task.task)}
                         ${task.tags && task.tags.length ? `<small class="tags">${task.tags.map(t => `<span class=\"tag-chip in-task\">#${t}</span>`).join(' ')}</small>` : ''}
+                        ${task.reminderAt ? `<small class=\"reminder-meta\">⏰ ${new Date(task.reminderAt).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}</small>` : ''}
                     </span>
                 </div>
                 <div class="task-actions">
@@ -651,6 +675,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const taskNameInput = document.getElementById('popup-task-name');
     const categorySelect = document.getElementById('popup-task-category');
     const tagsInput = document.getElementById('popup-task-tags');
+    const reminderInput = document.getElementById('popup-task-reminder');
 
     if (abrirPopupBtn) abrirPopupBtn.addEventListener('click', () => {
         resetPopupFormMode();
@@ -673,6 +698,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 .split(',')
                 .map(t => t.trim())
                 .filter(t => t.length > 0);
+            // Recordatorio
+            let reminderAt = null;
+            if (reminderInput && reminderInput.value) {
+                // Interpretar como hora local -> ISO
+                const localStr = reminderInput.value; // YYYY-MM-DDTHH:mm
+                const localDate = new Date(localStr);
+                if (!isNaN(localDate.getTime())) {
+                    reminderAt = localDate.toISOString();
+                }
+            }
 
             // Capturar hashtags del nombre como etiquetas adicionales y limpiar el nombre
             const hashtagRegex = /#([\p{L}\d_-]+)/gu;
@@ -691,13 +726,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const isEdit = popupForm.dataset.mode === 'edit';
             if (isEdit) {
                 const editingId = popupForm.dataset.editingId;
-                updateTask(editingId, nombre, categoria, tags);
+                updateTask(editingId, nombre, categoria, tags, reminderAt);
             } else {
-                addTask(categoria, nombre, tags);
+                addTask(categoria, nombre, tags, reminderAt);
             }
 
             taskNameInput.value = '';
             tagsInput.value = '';
+            if (reminderInput) reminderInput.value = '';
             resetPopupFormMode();
             popupForm.closest('.modal').style.display = 'none';
         });
@@ -776,6 +812,30 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('filter-tag')?.addEventListener('change', renderTasks);
 
+    // Botón para habilitar notificaciones
+    document.getElementById('enable-notifications')?.addEventListener('click', async () => {
+        try {
+            if (!('Notification' in window)) {
+                showToast('Notificaciones no soportadas en este navegador', 'error');
+                return;
+            }
+            let perm = Notification.permission;
+            if (perm !== 'granted') {
+                perm = await Notification.requestPermission();
+            }
+            if (perm === 'granted') {
+                localStorage.setItem('notificationsEnabled', 'true');
+                showToast('Notificaciones habilitadas ✅');
+            } else {
+                localStorage.setItem('notificationsEnabled', 'false');
+                showToast('Permiso de notificaciones denegado', 'error');
+            }
+        } catch (e) {
+            console.error('Error solicitando notificaciones', e);
+            showToast('No se pudo solicitar notificaciones', 'error');
+        }
+    });
+
     // Drag & Drop para tareas
     document.addEventListener('dragstart', function(e) {
         const taskEl = e.target.closest?.('.task');
@@ -785,4 +845,136 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // getAllTags y updateTagFilterDropdown ahora son globales
+    // Mostrar recordatorios vencidos al abrir la app
+    checkDueRemindersAndAlertOnce();
 });
+
+// Muestra un popup con recordatorios vencidos al abrir
+function checkDueRemindersAndAlertOnce() {
+    const now = Date.now();
+    const due = [];
+    let needsSave = false;
+    for (const [cat, tasks] of Object.entries(categories)) {
+        for (const task of tasks) {
+            if (!task) continue;
+            if (task.completed) continue;
+            if (!task.reminderAt) continue;
+            if (task.reminderDone) continue;
+            const when = Date.parse(task.reminderAt);
+            if (!isNaN(when) && when <= now) {
+                due.push({ title: task.task, category: categoryNames[cat] || cat });
+                task.reminderDone = true;
+                task.lastModified = new Date().toISOString();
+                needsSave = true;
+            }
+        }
+    }
+    if (needsSave) saveCategoriesToLocalStorage();
+    if (due.length > 0) {
+        const lines = due.map(d => `• ${d.title} (${d.category})`).join('\n');
+        alert(`Tienes ${due.length} recordatorio(s) vencido(s):\n\n${lines}`);
+    }
+}
+
+// --- RECORDATORIOS ---
+async function showLocalNotification(title, options = {}) {
+    try {
+        const registration = await navigator.serviceWorker?.getRegistration();
+        if (registration && Notification.permission === 'granted') {
+            return registration.showNotification(title, options);
+        }
+    } catch (_) {}
+    if (Notification.permission === 'granted') {
+        return new Notification(title, options);
+    }
+}
+
+function checkDueReminders() {
+    const enabled = localStorage.getItem('notificationsEnabled') === 'true';
+    // Si soporta triggers y hay permiso, delegamos en ellos y no hacemos polling
+    if (enabled && supportsNotificationTriggers() && Notification.permission === 'granted') return;
+    const now = Date.now();
+    let needsSave = false;
+    if (!enabled || !('Notification' in window)) return;
+
+    for (const [cat, tasks] of Object.entries(categories)) {
+        for (const task of tasks) {
+            if (!task) continue;
+            if (task.completed) continue;
+            if (!task.reminderAt) continue;
+            if (task.reminderDone) continue;
+            const when = Date.parse(task.reminderAt);
+            if (!isNaN(when) && when <= now) {
+                const body = `Categoría: ${categoryNames[cat]}`;
+                showLocalNotification('Recordatorio de tarea', {
+                    body: `${task.task}\n${body}`,
+                    icon: 'icons/icon-192.png',
+                    tag: `reminder-${task.id}`,
+                    data: { taskId: task.id }
+                });
+                task.reminderDone = true;
+                task.lastModified = new Date().toISOString();
+                needsSave = true;
+            }
+        }
+    }
+    if (needsSave) {
+        saveCategoriesToLocalStorage();
+    }
+}
+
+let reminderInterval = null;
+function startReminderPolling() {
+    if (reminderInterval) clearInterval(reminderInterval);
+    // Comprobar inmediatamente y luego cada 30 segundos
+    checkDueReminders();
+function supportsNotificationTriggers() {
+    try {
+        // showTrigger es parte de las opciones; TimestampTrigger expone el constructor
+        return (
+            'Notification' in window &&
+            'showTrigger' in Notification.prototype &&
+            typeof TimestampTrigger !== 'undefined'
+        );
+    } catch (_) { return false; }
+}
+
+async function tryScheduleTaskTrigger(task, categoryKey) {
+    try {
+        if (!task || !task.reminderAt) return;
+        if (!supportsNotificationTriggers()) return;
+        if (Notification.permission !== 'granted') return;
+        const when = Date.parse(task.reminderAt);
+        if (isNaN(when)) return;
+        if (when <= Date.now() + 1000) return; // No programar pasado o inmediato
+        if (task.triggerScheduledAt === task.reminderAt) return; // Ya programado
+        const reg = await navigator.serviceWorker?.getRegistration();
+        if (!reg) return;
+        await reg.showNotification('Recordatorio de tarea', {
+            body: `${task.task}\nCategoría: ${categoryNames[categoryKey] || ''}`.trim(),
+            tag: `reminder-${task.id}`,
+            icon: 'icons/icon-192.png',
+            showTrigger: new TimestampTrigger(when),
+            data: { taskId: task.id, category: categoryKey }
+        });
+        task.triggerScheduledAt = task.reminderAt;
+        saveCategoriesToLocalStorage();
+    } catch (e) {
+        console.warn('No se pudo programar trigger:', e);
+    }
+}
+
+function schedulePendingTriggers() {
+    if (!supportsNotificationTriggers()) return;
+    if (Notification.permission !== 'granted') return;
+    for (const [cat, tasks] of Object.entries(categories)) {
+        for (const t of tasks) {
+            if (!t || t.completed) continue;
+            if (!t.reminderAt) continue;
+            if (t.triggerScheduledAt === t.reminderAt) continue;
+            tryScheduleTaskTrigger(t, cat);
+        }
+    }
+}
+    reminderInterval = setInterval(checkDueReminders, 30000);
+}

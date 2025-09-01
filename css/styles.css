@@ -186,6 +186,14 @@ button:hover { background: #1f2937; }
   color: #374151;
   border: 1px solid #d1d5db;
 }
+/* Metadatos de recordatorio/archivo */
+.task .reminder-meta,
+.task .archived-meta {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-muted);
+  font-size: 12px;
+}
 
 footer {
     text-align: center;
