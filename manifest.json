@@ -1,21 +1,13 @@
 {
   "name": "Gestor de Tareas",
   "short_name": "TareasGT",
-  "start_url": "https://sasogu.github.io/task-manager-app/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#35424a",
   "theme_color": "#35424a",
   "description": "Una aplicación para gestionar tus tareas.",
   "icons": [
-    {
-      "src": "https://sasogu.github.io/task-manager-app/icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
   ]
 }
