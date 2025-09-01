@@ -8,6 +8,16 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function formatArchivedDate(task) {
+        const iso = task.archivedOn || task.lastModified;
+        if (!iso) return '';
+        try {
+            return new Date(iso).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' });
+        } catch (_) {
+            return iso;
+        }
+    }
+
     function renderArchivedTasks() {
         const allCategories = JSON.parse(localStorage.getItem('categories') || '{}');
         const archivedTasks = allCategories['archivadas'] || [];
@@ -31,6 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
             taskDiv.innerHTML = `
                 <input type="checkbox" ${taskObj.completed ? 'checked' : ''} disabled>
                 <span class="${taskObj.completed ? 'completed' : ''}">${convertirEnlaces(taskObj.task)}</span>
+                <small class="archived-meta">Archivada: ${formatArchivedDate(taskObj)}</small>
                 <button onclick="unarchiveTask('${taskObj.id}')">Desarchivar</button>
                 <button onclick="deletePermanently('${taskObj.id}')">Eliminar Permanentemente</button>
             `;
@@ -78,6 +89,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const [task] = archived.splice(idx, 1);
         task.completed = false;
         task.lastModified = new Date().toISOString();
+        // Limpiar metadato de archivado al desarchivar
+        if (task.archivedOn) delete task.archivedOn;
         if (!Array.isArray(allCategories['bandeja-de-entrada'])) {
             allCategories['bandeja-de-entrada'] = [];
         }

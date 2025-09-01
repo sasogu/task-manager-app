@@ -176,6 +176,14 @@ function moveTask(taskId, newCategory) {
     if (taskData && categories[newCategory]) {
         const [task] = categories[taskData.category].splice(taskData.taskIndex, 1);
         task.lastModified = new Date().toISOString();
+        // Gestionar metadatos de archivado al mover entre categorías
+        if (newCategory === 'archivadas') {
+            task.completed = true;
+            task.archivedOn = new Date().toISOString();
+        } else if (taskData.category === 'archivadas' && newCategory !== 'archivadas') {
+            task.completed = false;
+            delete task.archivedOn;
+        }
         categories[newCategory].push(task);
         saveCategoriesToLocalStorage();
         renderTasks();
@@ -193,6 +201,14 @@ function updateTask(taskId, newName, newCategory, newTags = []) {
     task.lastModified = new Date().toISOString();
     if (newCategory && newCategory !== category && categories[newCategory]) {
         categories[category].splice(data.taskIndex, 1);
+        // Gestionar metadatos de archivado si cambia la categoría desde el editor
+        if (newCategory === 'archivadas') {
+            task.completed = true;
+            task.archivedOn = new Date().toISOString();
+        } else if (category === 'archivadas' && newCategory !== 'archivadas') {
+            task.completed = false;
+            delete task.archivedOn;
+        }
         categories[newCategory].push(task);
     }
     saveCategoriesToLocalStorage();
