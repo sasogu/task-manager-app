@@ -52,7 +52,8 @@ header .acciones { flex-direction: row; flex-wrap: wrap; }
   #task-container { grid-template-columns: repeat(2, 1fr); }
 }
 @media (min-width: 1100px) {
-  #task-container { grid-template-columns: repeat(3, 1fr); }
+  /* En escritorio amplio, mostrar 4 columnas para alinear 'Algún Día' */
+  #task-container { grid-template-columns: repeat(4, 1fr); }
 }
 
 /* Estilo normal de la categoría */
