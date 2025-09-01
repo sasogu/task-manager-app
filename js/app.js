@@ -844,6 +844,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Acceso rápido: si llega con ?quick=1 abrir directamente el popup de nueva tarea
+    try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('quick')) {
+            resetPopupFormMode();
+            popup.style.display = 'flex';
+            const input = document.getElementById('popup-task-name');
+            if (input) input.focus();
+            updateTagDatalist();
+            renderTagSuggestions();
+        }
+    } catch (_) {}
+
     // getAllTags y updateTagFilterDropdown ahora son globales
     // Mostrar recordatorios vencidos al abrir la app
     checkDueRemindersAndAlertOnce();
