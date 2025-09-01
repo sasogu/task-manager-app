@@ -84,10 +84,18 @@ function showConfirm(message, acceptLabel = 'Aceptar', cancelLabel = 'Cancelar')
 }
 
 function convertirEnlaces(texto) {
-    // Expresión regular para detectar URLs
+    // Escapar HTML y luego convertir URLs en enlaces seguros
     const urlRegex = /(https?:\/\/[^\s]+)/g;
-    return texto.replace(urlRegex, function(url) {
-        return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+    const escapeHTML = (s) => s
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    const escaped = typeof texto === 'string' ? escapeHTML(texto) : '';
+    return escaped.replace(urlRegex, function(url) {
+        const safeHref = encodeURI(url);
+        return `<a href="${safeHref}" target="_blank" rel="noopener noreferrer">${escapeHTML(url)}</a>`;
     });
 }
 
@@ -617,25 +625,15 @@ function stopAutoSyncPolling() {
 }
 
 function handleAuthCallback() {
-    // Verificar tanto en hash como en query params
+    // Verificar solo en hash (más seguro): access_token viene en el fragmento
     const hash = window.location.hash.substring(1);
-    const search = window.location.search.substring(1);
     
     console.log('🔍 Hash:', hash);
-    console.log('🔍 Search:', search);
     
     let newToken = null;
-    
-    // Intentar desde hash
     if (hash) {
         const hashParams = new URLSearchParams(hash);
         newToken = hashParams.get('access_token');
-    }
-    
-    // Intentar desde query params si no hay en hash
-    if (!newToken && search) {
-        const searchParams = new URLSearchParams(search);
-        newToken = searchParams.get('access_token');
     }
     
     console.log('🎫 Nuevo token encontrado:', newToken ? 'Sí' : 'No');
