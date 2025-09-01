@@ -420,20 +420,32 @@ function toggleTagInInput(tag) {
 function updateDropboxButtons() {
     const loginBtn = document.getElementById('dropbox-login');
     const syncBtn = document.getElementById('dropbox-sync');
-    const logoutBtn = document.getElementById('dropbox-logout');
-
-    if (!loginBtn || !syncBtn || !logoutBtn) return; // Comprobación de seguridad
-
+    if (!loginBtn || !syncBtn) return;
     if (accessToken) {
         loginBtn.style.display = 'none';
         syncBtn.style.display = 'inline-block';
-        logoutBtn.style.display = 'inline-block';
     } else {
         loginBtn.style.display = 'inline-block';
         syncBtn.style.display = 'none';
-        logoutBtn.style.display = 'none';
     }
 }
+
+// Compatibilidad: en algunos flujos se invoca este helper; si no existe, dejar como no-op
+function showReconnectDropboxBtn() { /* no-op: el botón de login ya queda visible al expirar */ }
+
+// Muestra/Oculta todo el bloque de sincronización si no hay conexión
+function updateSyncGroupVisibility() {
+    const group = document.getElementById('sync-group');
+    if (!group) return;
+    if (navigator.onLine) {
+        group.style.display = '';
+        // Ajustar botones internos según sesión
+        updateDropboxButtons();
+    } else {
+        group.style.display = 'none';
+    }
+}
+
 
 async function validateToken() {
     if (!accessToken) return false;
@@ -762,15 +774,6 @@ document.addEventListener('DOMContentLoaded', function() {
         window.location.href = authUrl;
     });
     document.getElementById('dropbox-sync')?.addEventListener('click', performFullSync);
-    document.getElementById('dropbox-logout')?.addEventListener('click', () => {
-        stopAutoSyncPolling();
-        localStorage.removeItem('dropbox_access_token');
-        localStorage.removeItem('lastSync');
-        accessToken = null;
-        localLastSync = null;
-        updateDropboxButtons();
-        showToast('Desconectado de Dropbox');
-    });
 
     // Lógica de Backup/Restore y Limpieza
     // ... (Aquí irían los listeners para backup-btn, restore-btn, etc., que ya tenías)
