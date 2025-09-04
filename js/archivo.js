@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     const archiveContainer = document.getElementById('archive-container');
+    const filterSelect = document.getElementById('archive-filter-tag');
 
     function convertirEnlaces(texto) {
         const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -18,20 +19,45 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function getArchiveTags(tasks) {
+        const s = new Set();
+        tasks.forEach(t => Array.isArray(t.tags) && t.tags.forEach(tag => s.add(tag)));
+        return Array.from(s).sort();
+    }
+
+    function updateArchiveFilterDropdown(currentValue, tasks) {
+        if (!filterSelect) return;
+        const tags = getArchiveTags(tasks);
+        let html = '<option value="">Mostrar todo</option>';
+        const hasCurrent = currentValue && tags.includes(currentValue);
+        const rendered = hasCurrent ? tags : [currentValue, ...tags].filter((v, i, a) => v && a.indexOf(v) === i);
+        html += rendered.map(t => `<option value="${t}">${t}</option>`).join('');
+        filterSelect.innerHTML = html;
+        filterSelect.value = currentValue || '';
+    }
+
     function renderArchivedTasks() {
         const allCategories = JSON.parse(localStorage.getItem('categories') || '{}');
         const archivedTasks = allCategories['archivadas'] || [];
+        const currentFilter = (filterSelect?.value || localStorage.getItem('selectedArchiveFilterTag') || '');
         // Orden estable: más recientes primero por archivedOn (si existe) o lastModified
-        const view = archivedTasks.slice().sort((a, b) => {
+        let view = archivedTasks.slice().sort((a, b) => {
             const aTime = new Date(a.archivedOn || a.lastModified || 0).getTime();
             const bTime = new Date(b.archivedOn || b.lastModified || 0).getTime();
             return bTime - aTime;
         });
 
+        // Filtrado por etiqueta si aplica
+        if (currentFilter) {
+            view = view.filter(t => Array.isArray(t.tags) && t.tags.includes(currentFilter));
+        }
+
         archiveContainer.innerHTML = '';
 
         if (view.length === 0) {
             archiveContainer.innerHTML = '<p>No hay tareas archivadas.</p>';
+            // Aún actualizar el dropdown según las tareas originales
+            updateArchiveFilterDropdown(currentFilter, archivedTasks);
             return;
         }
 
@@ -40,13 +66,18 @@ document.addEventListener('DOMContentLoaded', function() {
             taskDiv.className = 'task';
             taskDiv.innerHTML = `
                 <input type="checkbox" ${taskObj.completed ? 'checked' : ''} disabled>
-                <span class="${taskObj.completed ? 'completed' : ''}">${convertirEnlaces(taskObj.task)}</span>
+                <span class="${taskObj.completed ? 'completed' : ''}">${convertirEnlaces(taskObj.task)}
+                    ${taskObj.tags && taskObj.tags.length ? `<small class="tags">${taskObj.tags.map(t => `<span class=\"tag-chip in-task\">#${t}</span>`).join(' ')}</small>` : ''}
+                </span>
                 <small class="archived-meta">Archivada: ${formatArchivedDate(taskObj)}</small>
                 <button onclick="unarchiveTask('${taskObj.id}')">Desarchivar</button>
                 <button onclick="deletePermanently('${taskObj.id}')">Eliminar Permanentemente</button>
             `;
             archiveContainer.appendChild(taskDiv);
         });
+
+        // Actualizar dropdown tras render
+        updateArchiveFilterDropdown(currentFilter, archivedTasks);
     }
 
     // FUNCIÓN DE ELIMINACIÓN CORREGIDA
@@ -103,6 +134,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Cargar las tareas al iniciar
     renderArchivedTasks();
+
+    // Gestionar cambios en el filtro
+    filterSelect?.addEventListener('change', (e) => {
+        try { localStorage.setItem('selectedArchiveFilterTag', e.target.value || ''); } catch (_) {}
+        renderArchivedTasks();
+    });
 
     // Sincronización básica a Dropbox desde la vista de archivo
     async function syncToDropboxFromArchive() {
