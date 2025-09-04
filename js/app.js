@@ -287,7 +287,13 @@ function resetPopupFormMode() {
 function renderTasks() {
     const taskContainer = document.getElementById('task-container');
     const filterTagSelect = document.getElementById('filter-tag');
-    const filterTag = filterTagSelect ? filterTagSelect.value : '';
+    // Mantener filtro activo: tomar el valor actual o el guardado en localStorage
+    let filterTag = '';
+    if (filterTagSelect) {
+        filterTag = filterTagSelect.value || localStorage.getItem('selectedFilterTag') || '';
+    } else {
+        filterTag = localStorage.getItem('selectedFilterTag') || '';
+    }
     taskContainer.innerHTML = '';
 
     for (const [category, tasks] of Object.entries(categories)) {
@@ -342,8 +348,8 @@ function renderTasks() {
         taskContainer.appendChild(categoryDiv);
     }
 
-    // Actualiza filtros y autocompletado en cada render
-    updateTagFilterDropdown();
+    // Actualiza filtros (conservando selección) y autocompletado en cada render
+    updateTagFilterDropdown(filterTag);
     updateTagDatalist();
 }
 
@@ -365,12 +371,23 @@ function getAllTags() {
     return Array.from(tagsSet).sort();
 }
 
-function updateTagFilterDropdown() {
+function updateTagFilterDropdown(currentValue = '') {
     const filterTagSelect = document.getElementById('filter-tag');
     if (!filterTagSelect) return;
     const tags = getAllTags();
-    filterTagSelect.innerHTML = '<option value="">-- Filtrar por etiqueta --</option>' +
-        tags.map(tag => `<option value="${tag}">${tag}</option>`).join('');
+
+    // Construir opciones con "Mostrar todo" al principio
+    let optionsHtml = '<option value="">Mostrar todo</option>';
+
+    // Si hay un valor actual que ya no existe en las etiquetas, añadirlo para conservar selección
+    const hasCurrent = currentValue && tags.includes(currentValue);
+    const renderedTags = hasCurrent ? tags : [currentValue, ...tags].filter((v, i, a) => v && a.indexOf(v) === i);
+
+    optionsHtml += renderedTags.map(tag => `<option value="${tag}">${tag}</option>`).join('');
+
+    filterTagSelect.innerHTML = optionsHtml;
+    // Restaurar selección previa
+    filterTagSelect.value = currentValue || '';
 }
 
 // Autocompletado para input de etiquetas (datalist)
@@ -814,7 +831,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Iniciar el flujo de autenticación de Dropbox
     handleAuthCallback();
 
-    document.getElementById('filter-tag')?.addEventListener('change', renderTasks);
+    document.getElementById('filter-tag')?.addEventListener('change', (e) => {
+        try { localStorage.setItem('selectedFilterTag', e.target.value || ''); } catch (_) {}
+        renderTasks();
+    });
 
     // Botón para habilitar notificaciones
     document.getElementById('enable-notifications')?.addEventListener('click', async () => {
