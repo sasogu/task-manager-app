@@ -29,6 +29,80 @@ const DROPBOX_REDIRECT_URI = 'https://sasogu.github.io/task-manager-app/';
 // --- FUNCIONES DE UTILIDAD ---
 function generateUUID() { return crypto.randomUUID(); }
 
+// --- RECURRENCIA ---
+function normalizeRecurrence(rec) {
+    const validTypes = new Set(['none', 'daily', 'weekly', 'monthly', 'everyNDays']);
+    const type = rec && validTypes.has(rec.type) ? rec.type : 'none';
+    const interval = Math.max(1, parseInt(rec && rec.interval != null ? rec.interval : 1, 10) || 1);
+    return { type, interval };
+}
+
+function isTaskRecurring(task) {
+    return task && task.recurrence && task.recurrence.type && task.recurrence.type !== 'none';
+}
+
+function addDays(date, days) {
+    const d = new Date(date.getTime());
+    d.setDate(d.getDate() + days);
+    return d;
+}
+
+function addMonths(date, months) {
+    const d = new Date(date.getTime());
+    const day = d.getDate();
+    d.setMonth(d.getMonth() + months);
+    // Ajustar si el mes destino tiene menos días
+    if (d.getDate() < day) {
+        d.setDate(0); // último día del mes anterior
+    }
+    return d;
+}
+
+function computeNextReminderISO(currentISO, recurrence) {
+    const rec = normalizeRecurrence(recurrence || { type: 'none', interval: 1 });
+    if (rec.type === 'none') return null;
+    let base = currentISO ? new Date(currentISO) : new Date();
+    if (isNaN(base.getTime())) base = new Date();
+    let next = new Date(base.getTime());
+
+    const applyStep = () => {
+        switch (rec.type) {
+            case 'daily':
+                next = addDays(next, rec.interval);
+                break;
+            case 'weekly':
+                next = addDays(next, 7 * rec.interval);
+                break;
+            case 'monthly':
+                next = addMonths(next, rec.interval);
+                break;
+            case 'everyNDays':
+                next = addDays(next, rec.interval);
+                break;
+        }
+    };
+
+    // Asegurar que sea estrictamente en el futuro
+    const now = Date.now();
+    applyStep();
+    let guard = 0;
+    while (next.getTime() <= now && guard < 1000) { // guard para evitar bucles
+        applyStep();
+        guard++;
+    }
+    return next.toISOString();
+}
+
+function formatRecurrence(rec) {
+    const r = normalizeRecurrence(rec || { type: 'none', interval: 1 });
+    if (r.type === 'none') return '';
+    if (r.type === 'daily') return r.interval === 1 ? 'Diariamente' : `Cada ${r.interval} días`;
+    if (r.type === 'weekly') return r.interval === 1 ? 'Semanalmente' : `Cada ${r.interval} semanas`;
+    if (r.type === 'monthly') return r.interval === 1 ? 'Mensualmente' : `Cada ${r.interval} meses`;
+    if (r.type === 'everyNDays') return r.interval === 1 ? 'Diariamente' : `Cada ${r.interval} días`;
+    return '';
+}
+
 function showToast(message, type = 'success') {
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
@@ -125,7 +199,7 @@ function findTask(taskId) {
     return null;
 }
 
-function addTask(category, taskName, tags = [], reminderAt = null) {
+function addTask(category, taskName, tags = [], reminderAt = null, recurrence = { type: 'none', interval: 1 }) {
     const newTask = {
         id: generateUUID(),
         task: taskName,
@@ -134,7 +208,8 @@ function addTask(category, taskName, tags = [], reminderAt = null) {
         tags: tags,
         reminderAt: reminderAt, // ISO string o null
         reminderDone: false,
-        triggerScheduledAt: null
+        triggerScheduledAt: null,
+        recurrence: normalizeRecurrence(recurrence)
     };
     categories[category].push(newTask);
     saveCategoriesToLocalStorage();
@@ -167,7 +242,17 @@ function toggleTaskCompletion(taskId) {
         const { task } = taskData;
         task.completed = !task.completed;
         task.lastModified = new Date().toISOString();
-        if (task.completed && taskData.category !== 'archivadas') {
+        // Si es recurrente y se marca como completada, avanzamos la fecha y no archivamos
+        if (task.completed && taskData.category !== 'archivadas' && isTaskRecurring(task)) {
+            const nextISO = computeNextReminderISO(task.reminderAt, task.recurrence);
+            if (nextISO) {
+                task.reminderAt = nextISO;
+                task.reminderDone = false;
+                task.triggerScheduledAt = null;
+            }
+            // Mantener en su categoría y desmarcar como completada (se programa la próxima)
+            task.completed = false;
+        } else if (task.completed && taskData.category !== 'archivadas') {
             const [movedTask] = categories[taskData.category].splice(taskData.taskIndex, 1);
             movedTask.archivedOn = new Date().toISOString();
             movedTask.reminderDone = true;
@@ -205,7 +290,7 @@ function moveTask(taskId, newCategory) {
 }
 
 // --- EDICIÓN DE TAREAS ---
-function updateTask(taskId, newName, newCategory, newTags = [], newReminderAt = null) {
+function updateTask(taskId, newName, newCategory, newTags = [], newReminderAt = null, recurrence = null) {
     const data = findTask(taskId);
     if (!data) return;
     const { task, category } = data;
@@ -216,6 +301,9 @@ function updateTask(taskId, newName, newCategory, newTags = [], newReminderAt = 
     // Si se cambia la fecha, reiniciar el estado de disparo y reprogramar
     task.reminderDone = false;
     task.triggerScheduledAt = null;
+    if (recurrence) {
+        task.recurrence = normalizeRecurrence(recurrence);
+    }
     task.lastModified = new Date().toISOString();
     if (newCategory && newCategory !== category && categories[newCategory]) {
         categories[category].splice(data.taskIndex, 1);
@@ -243,6 +331,8 @@ function openEditTask(taskId) {
     const categorySelect = document.getElementById('popup-task-category');
     const tagsInput = document.getElementById('popup-task-tags');
     const reminderInput = document.getElementById('popup-task-reminder');
+    const recurrenceTypeSelect = document.getElementById('popup-task-recurrence-type');
+    const recurrenceIntervalInput = document.getElementById('popup-task-recurrence-interval');
     if (!popup || !form || !taskNameInput || !categorySelect || !tagsInput) return;
 
     // Prefill
@@ -260,6 +350,13 @@ function openEditTask(taskId) {
         } else {
             reminderInput.value = '';
         }
+    }
+    if (recurrenceTypeSelect && recurrenceIntervalInput) {
+        const rec = normalizeRecurrence(data.task.recurrence || { type: 'none', interval: 1 });
+        recurrenceTypeSelect.value = rec.type;
+        recurrenceIntervalInput.value = String(rec.interval);
+        // Mostrar/ocultar campo N
+        recurrenceIntervalInput.style.display = rec.type === 'everyNDays' ? '' : 'none';
     }
 
     // Switch form to edit mode
@@ -314,6 +411,7 @@ function renderTasks() {
                         ${convertirEnlaces(task.task)}
                         ${task.tags && task.tags.length ? `<small class="tags">${task.tags.map(t => `<span class=\"tag-chip in-task\">#${t}</span>`).join(' ')}</small>` : ''}
                         ${task.reminderAt ? `<small class=\"reminder-meta\">⏰ ${new Date(task.reminderAt).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}</small>` : ''}
+                        ${isTaskRecurring(task) ? `<small class=\"reminder-meta\">🔁 ${formatRecurrence(task.recurrence)}</small>` : ''}
                     </span>
                 </div>
                 <div class="task-actions">
@@ -704,6 +802,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const categorySelect = document.getElementById('popup-task-category');
     const tagsInput = document.getElementById('popup-task-tags');
     const reminderInput = document.getElementById('popup-task-reminder');
+    const recurrenceTypeSelect = document.getElementById('popup-task-recurrence-type');
+    const recurrenceIntervalInput = document.getElementById('popup-task-recurrence-interval');
 
     if (abrirPopupBtn) abrirPopupBtn.addEventListener('click', () => {
         resetPopupFormMode();
@@ -711,6 +811,11 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('popup-task-name').focus();
         updateTagDatalist();
         renderTagSuggestions();
+        if (recurrenceTypeSelect && recurrenceIntervalInput) {
+            recurrenceTypeSelect.value = 'none';
+            recurrenceIntervalInput.value = '1';
+            recurrenceIntervalInput.style.display = 'none';
+        }
     });
     if (cancelarPopupBtn) cancelarPopupBtn.addEventListener('click', () => {
         resetPopupFormMode();
@@ -718,6 +823,11 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     window.addEventListener('click', (e) => { if (e.target == popup) popup.style.display = 'none'; });
     if (popupForm) {
+        // Mostrar/ocultar intervalo según tipo
+        recurrenceTypeSelect?.addEventListener('change', () => {
+            if (!recurrenceIntervalInput) return;
+            recurrenceIntervalInput.style.display = recurrenceTypeSelect.value === 'everyNDays' ? '' : 'none';
+        });
         popupForm.addEventListener('submit', function(e) {
             e.preventDefault();
             let nombre = taskNameInput.value.trim();
@@ -750,13 +860,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
+            // Recurrencia
+            const recurrence = {
+                type: (recurrenceTypeSelect?.value || 'none'),
+                interval: Math.max(1, parseInt(recurrenceIntervalInput?.value || '1', 10) || 1)
+            };
+
             // Modo edición vs. alta
             const isEdit = popupForm.dataset.mode === 'edit';
             if (isEdit) {
                 const editingId = popupForm.dataset.editingId;
-                updateTask(editingId, nombre, categoria, tags, reminderAt);
+                updateTask(editingId, nombre, categoria, tags, reminderAt, recurrence);
             } else {
-                addTask(categoria, nombre, tags, reminderAt);
+                addTask(categoria, nombre, tags, reminderAt, recurrence);
             }
 
             taskNameInput.value = '';
@@ -969,6 +1085,9 @@ function startReminderPolling() {
     if (reminderInterval) clearInterval(reminderInterval);
     // Comprobar inmediatamente y luego cada 30 segundos
     checkDueReminders();
+    reminderInterval = setInterval(checkDueReminders, 30000);
+}
+
 function supportsNotificationTriggers() {
     try {
         // showTrigger es parte de las opciones; TimestampTrigger expone el constructor
@@ -1016,6 +1135,4 @@ function schedulePendingTriggers() {
             tryScheduleTaskTrigger(t, cat);
         }
     }
-}
-    reminderInterval = setInterval(checkDueReminders, 30000);
 }
