@@ -38,8 +38,8 @@ Los archivos del proyecto ya incluyen el intent-filter (Android) y `CFBundleURLT
 ```bash
 cd flutter_task_manager
 flutter pub get
-flutter run -d chrome \
-  --dart-define=DROPBOX_APP_KEY=<TU_APP_KEY> \
+flutter run -d web-server --web-port 8000 \
+  --dart-define=DROPBOX_APP_KEY=f21fzdjtng58vcg \
   --dart-define=DROPBOX_REDIRECT_URI=flutter-task-manager://auth
 ```
 
@@ -47,8 +47,8 @@ flutter run -d chrome \
 
 ```bash
 flutter build web \
-  --dart-define=DROPBOX_APP_KEY=<TU_APP_KEY> \
-  --dart-define=DROPBOX_REDIRECT_URI=https://tu-dominio/callback
+  --dart-define=DROPBOX_APP_KEY=f21fzdjtng58vcg \
+  --dart-define=DROPBOX_REDIRECT_URI=http://localhost:8000/
 ```
 
 La carpeta `build/web` contiene la PWA lista para desplegar.
@@ -59,6 +59,8 @@ La carpeta `build/web` contiene la PWA lista para desplegar.
 Desde flutter_task_manager/ ejecuta 
 
 flutter build apk --release --dart-define=DROPBOX_APP_KEY=… --dart-define=DROPBOX_REDIRECT_URI=flutter-task-manager://auth 
+
+flutter build apk --release --dart-define=DROPBOX_APP_KEY=f21fzdjtng58vcg --dart-define=DROPBOX_REDIRECT_URI=flutter-task-manager://auth 
 
 para generar 
 

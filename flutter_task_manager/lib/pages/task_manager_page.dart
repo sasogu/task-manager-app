@@ -37,7 +37,7 @@ class TaskManagerPage extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _ActionsHeader(onAdd: () => _showAddTaskDialog(context, ref)),
+            const _ActionsHeader(),
             const SizedBox(height: 16),
             _DropboxPanel(),
             const SizedBox(height: 16),
@@ -150,9 +150,7 @@ class TaskManagerPage extends ConsumerWidget {
 }
 
 class _ActionsHeader extends StatelessWidget {
-  const _ActionsHeader({required this.onAdd});
-
-  final VoidCallback onAdd;
+  const _ActionsHeader();
 
   @override
   Widget build(BuildContext context) {
@@ -161,11 +159,6 @@ class _ActionsHeader extends StatelessWidget {
       runSpacing: 8,
       spacing: 8,
       children: [
-        ElevatedButton.icon(
-          onPressed: onAdd,
-          icon: const Icon(Icons.add),
-          label: const Text('Nueva Tarea'),
-        ),
         OutlinedButton.icon(
           onPressed: () => Navigator.pushNamed(context, '/recordatorios'),
           icon: const Icon(Icons.access_time),
