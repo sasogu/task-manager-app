@@ -87,3 +87,19 @@ El `applicationId`/`bundle identifier` oficial de Tasques es `com.sasogu.tasques
 
 Para pruebas rápidas puedes usar flutter run -d <dispositivo_android> --release --dart-define=… o --profile; 
 recuerda activar el modo desarrollador y la depuración USB en tu dispositivo.
+
+flutter run -d 2a45a69b --release \
+  --dart-define=DROPBOX_APP_KEY=f21fzdjtng58vcg \
+  --dart-define=DROPBOX_REDIRECT_URI=flutter-task-manager://auth
+  
+flutter build appbundle --release \
+  --dart-define=DROPBOX_APP_KEY=f21fzdjtng58vcg \
+  --dart-define=DROPBOX_REDIRECT_URI=flutter-task-manager://auth
+
+
+
+
+  flutter build appbundle --release \
+  --dart-define=DROPBOX_APP_KEY=f21fzdjtng58vcg \
+  --dart-define=DROPBOX_REDIRECT_URI=flutter-task-manager://auth
+

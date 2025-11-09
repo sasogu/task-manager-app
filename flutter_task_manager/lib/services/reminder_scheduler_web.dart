@@ -60,9 +60,9 @@ class WebReminderScheduler implements ReminderScheduler {
 
   String _buildBody(Task task) {
     if (task.tags.isNotEmpty) {
-      return 'Etiquetas: ${task.tags.join(', ')}';
+      return 'Etiquetes: ${task.tags.join(', ')}';
     }
-    return 'No olvides completar esta tarea.';
+    return 'No oblides completar aquesta tasca.';
   }
 }
 

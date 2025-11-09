@@ -13,13 +13,13 @@ class ArchivePage extends ConsumerWidget {
     final notifier = ref.read(taskListProvider.notifier);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Archivo')),
+      appBar: AppBar(title: const Text('Arxiu')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: archivedTasks.isEmpty
             ? const Center(
                 child: Text(
-                  'No hay tareas archivadas todavía.',
+                  'Encara no hi ha tasques arxivades.',
                   textAlign: TextAlign.center,
                 ),
               )
@@ -44,13 +44,13 @@ class ArchivePage extends ConsumerWidget {
                                 ),
                               ),
                               IconButton(
-                                tooltip: 'Desarchivar',
+                                tooltip: 'Desarxiva',
                                 icon: const Icon(Icons.unarchive_outlined),
                                 onPressed: () =>
                                     notifier.unarchiveTask(task.id),
                               ),
                               IconButton(
-                                tooltip: 'Eliminar permanentemente',
+                                tooltip: 'Elimina per sempre',
                                 color: Theme.of(context).colorScheme.error,
                                 icon: const Icon(Icons.delete_outline),
                                 onPressed: () async {
@@ -80,7 +80,7 @@ class ArchivePage extends ConsumerWidget {
                             ),
                           const SizedBox(height: 8),
                           Text(
-                            'Archivada: ${_formatArchivedDate(context, task)}',
+                            'Arxivada: ${_formatArchivedDate(context, task)}',
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                         ],
@@ -97,7 +97,7 @@ class ArchivePage extends ConsumerWidget {
 
   String _formatArchivedDate(BuildContext context, Task task) {
     final reference = task.archivedOn ?? task.lastModified;
-    if (reference == null) return 'Sin fecha registrada';
+    if (reference == null) return 'Sense data registrada';
     final date = MaterialLocalizations.of(
       context,
     ).formatMediumDate(reference.toLocal());
@@ -112,18 +112,18 @@ Future<bool> _confirmDeletion(BuildContext context) async {
   final result = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
-      title: const Text('Eliminar tarea'),
+      title: const Text('Elimina la tasca'),
       content: const Text(
-        '¿Quieres eliminar esta tarea de forma permanente? Esta acción no se puede deshacer.',
+        'Vols eliminar aquesta tasca de manera permanent? Aquesta acció no es pot desfer.',
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('Cancelar'),
+          child: const Text('Cancel·la'),
         ),
         ElevatedButton(
           onPressed: () => Navigator.of(context).pop(true),
-          child: const Text('Eliminar'),
+          child: const Text('Elimina'),
         ),
       ],
     ),

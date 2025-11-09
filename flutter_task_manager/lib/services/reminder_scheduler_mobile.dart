@@ -17,9 +17,9 @@ class AwesomeReminderScheduler implements ReminderScheduler {
       [
         NotificationChannel(
           channelKey: _channelKey,
-          channelName: 'Recordatorios de tareas',
+          channelName: 'Recordatoris de tasques',
           channelDescription:
-              'Notificaciones para recordarte las tareas pendientes',
+              'Notificacions per a recordar-te les tasques pendents',
           defaultColor: const Color(0xFF35424A),
           ledColor: const Color(0xFFFFFFFF),
           importance: NotificationImportance.Max,
@@ -68,9 +68,9 @@ class AwesomeReminderScheduler implements ReminderScheduler {
 
   String _buildBody(Task task) {
     if (task.tags.isNotEmpty) {
-      return 'Etiquetas: ${task.tags.join(', ')}';
+      return 'Etiquetes: ${task.tags.join(', ')}';
     }
-    return 'No olvides completar esta tarea.';
+    return 'No oblides completar aquesta tasca.';
   }
 }
 

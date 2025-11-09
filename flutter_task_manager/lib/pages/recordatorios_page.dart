@@ -28,13 +28,13 @@ class RecordatoriosPage extends ConsumerWidget {
           ..sort((a, b) => a.reminder!.compareTo(b.reminder!));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Recordatorios')),
+      appBar: AppBar(title: const Text('Recordatoris')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: reminderTasks.isEmpty
             ? const Center(
                 child: Text(
-                  'No hay tareas con recordatorios pendientes.',
+                  'No hi ha tasques amb recordatoris pendents.',
                   textAlign: TextAlign.center,
                 ),
               )
@@ -42,13 +42,13 @@ class RecordatoriosPage extends ConsumerWidget {
                 children: [
                   if (overdue.isNotEmpty)
                     _ReminderSection(
-                      title: 'Vencidos',
+                      title: 'Vençuts',
                       tasks: overdue,
                       accentColor: Theme.of(context).colorScheme.error,
                     ),
                   if (upcoming.isNotEmpty)
                     _ReminderSection(
-                      title: 'Próximos',
+                      title: 'Propers',
                       tasks: upcoming,
                       accentColor: Theme.of(context).colorScheme.primary,
                     ),
@@ -117,7 +117,7 @@ class _ReminderSection extends ConsumerWidget {
                   ],
                 ),
                 trailing: IconButton(
-                  tooltip: 'Marcar como completada y archivar',
+                  tooltip: 'Marca com a completada i arxiva-la',
                   icon: const Icon(Icons.check_circle_outline),
                   onPressed: () => notifier.toggleTask(task.id),
                 ),

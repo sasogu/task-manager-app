@@ -73,7 +73,7 @@ class DropboxController extends StateNotifier<DropboxState> {
     if (appKey.isEmpty || redirectUri.isEmpty) {
       state = state.copyWith(
         errorMessage:
-            'Configura DROPBOX_APP_KEY y DROPBOX_REDIRECT_URI antes de conectar.',
+            'Configura DROPBOX_APP_KEY i DROPBOX_REDIRECT_URI abans de connectar.',
       );
       return;
     }
@@ -89,10 +89,10 @@ class DropboxController extends StateNotifier<DropboxState> {
         clearError: true,
       );
     } catch (error) {
-      print('[Dropbox OAuth] ERROR en connect: $error');
+      print('[Dropbox OAuth] ERROR en connectar: $error');
       state = state.copyWith(
         isConnecting: false,
-        errorMessage: 'No se pudo conectar: $error',
+        errorMessage: 'No s\'ha pogut connectar: $error',
       );
     }
   }
@@ -109,7 +109,7 @@ class DropboxController extends StateNotifier<DropboxState> {
     final appKey = dropboxAppKey;
     if (appKey.isEmpty) {
       state = state.copyWith(
-        errorMessage: 'Configura DROPBOX_APP_KEY para sincronizar.',
+        errorMessage: 'Configura DROPBOX_APP_KEY per sincronitzar.',
       );
       return;
     }
@@ -117,7 +117,7 @@ class DropboxController extends StateNotifier<DropboxState> {
     final creds = await _ensureValidCredentials(appKey);
     if (creds == null) {
       state = state.copyWith(
-        errorMessage: 'Conéctate a Dropbox antes de sincronizar.',
+        errorMessage: 'Connecta\'t a Dropbox abans de sincronitzar.',
       );
       return;
     }
@@ -150,7 +150,7 @@ class DropboxController extends StateNotifier<DropboxState> {
     } catch (error) {
       state = state.copyWith(
         isSyncing: false,
-        errorMessage: 'Error al sincronizar: $error',
+        errorMessage: 'Error en sincronitzar: $error',
       );
     }
   }
@@ -228,7 +228,7 @@ class DropboxController extends StateNotifier<DropboxState> {
     });
 
     final callbackScheme = Uri.parse(redirectUri).scheme;
-    print('[Dropbox OAuth] Lanzando autenticación con:');
+    print('[Dropbox OAuth] Iniciant autenticació amb:');
     print('  appKey: $appKey');
     print('  redirectUri: $redirectUri');
     print('  callbackScheme: $callbackScheme');
@@ -239,10 +239,10 @@ class DropboxController extends StateNotifier<DropboxState> {
       callbackUrlScheme: callbackScheme,
     );
 
-    print('[Dropbox OAuth] Redirección recibida: $result');
+    print('[Dropbox OAuth] Redirecció rebuda: $result');
 
     final code = _extractCode(result);
-    print('[Dropbox OAuth] Código extraído: $code');
+    print('[Dropbox OAuth] Codi extret: $code');
 
     final creds = await _service.exchangeCodeForToken(
       clientId: appKey,
@@ -250,7 +250,7 @@ class DropboxController extends StateNotifier<DropboxState> {
       code: code,
       codeVerifier: pkce.verifier,
     );
-    print('[Dropbox OAuth] Credenciales obtenidas: accessToken=${creds.accessToken.isNotEmpty}, refreshToken=${creds.refreshToken.isNotEmpty}, expiresAt=${creds.expiresAt}');
+    print('[Dropbox OAuth] Credencials obtingudes: accessToken=${creds.accessToken.isNotEmpty}, refreshToken=${creds.refreshToken.isNotEmpty}, expiresAt=${creds.expiresAt}');
     return creds;
   }
 
@@ -259,19 +259,19 @@ class DropboxController extends StateNotifier<DropboxState> {
     final uri = Uri.parse(callbackUrl);
     final queryCode = uri.queryParameters['code'];
     if (queryCode != null && queryCode.isNotEmpty) {
-      print('[Dropbox OAuth] Código encontrado en query: $queryCode');
+      print('[Dropbox OAuth] Codi trobat en la query: $queryCode');
       return queryCode;
     }
     if (uri.fragment.isNotEmpty) {
       final fragmentParams = Uri.splitQueryString(uri.fragment);
       final fragmentCode = fragmentParams['code'];
       if (fragmentCode != null && fragmentCode.isNotEmpty) {
-        print('[Dropbox OAuth] Código encontrado en fragment: $fragmentCode');
+        print('[Dropbox OAuth] Codi trobat en el fragment: $fragmentCode');
         return fragmentCode;
       }
     }
-    print('[Dropbox OAuth] No se encontró código en la redirección');
-    throw DropboxException('La autorización no devolvió un código válido.');
+    print('[Dropbox OAuth] No s\'ha trobat cap codi en la redirecció');
+    throw DropboxException('L\'autorització no ha retornat un codi vàlid.');
   }
 
   TaskState _mergeStates(TaskState local, TaskState? remote) {

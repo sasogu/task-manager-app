@@ -41,16 +41,16 @@ void main() {
     await tester.pumpAndSettle();
 
   expect(find.text('Tasques'), findsOneWidget);
-  expect(find.text('Nueva tarea'), findsOneWidget);
+  expect(find.text('Tasca nova'), findsOneWidget);
 
-  await tester.tap(find.text('Nueva tarea'));
+  await tester.tap(find.text('Tasca nova'));
   await tester.pumpAndSettle();
 
-  expect(find.text('Nueva tarea'), findsWidgets);
+  expect(find.text('Tasca nova'), findsWidgets);
 
-  await tester.tap(find.text('Cancelar'));
+  await tester.tap(find.text('Cancel·la'));
   await tester.pumpAndSettle();
 
-  expect(find.text('Nueva tarea'), findsOneWidget);
+  expect(find.text('Tasca nova'), findsOneWidget);
   });
 }

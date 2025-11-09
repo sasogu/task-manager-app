@@ -115,7 +115,7 @@ class TaskManagerPage extends ConsumerWidget {
                 padding: EdgeInsets.symmetric(vertical: 32),
                 child: Center(
                   child: Text(
-                    'Aún no hay tareas.\nCrea la primera con el botón "Nueva tarea".',
+                    'Encara no hi ha tasques.\nCrea la primera amb el botó "Tasca nova".',
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -127,9 +127,10 @@ class TaskManagerPage extends ConsumerWidget {
   }
 
   Future<void> _showAddTaskDialog(BuildContext context, WidgetRef ref) async {
+    final availableTags = ref.read(availableTagsProvider);
     final result = await showDialog<_TaskFormResult>(
       context: context,
-      builder: (context) => const _TaskDialog(),
+      builder: (context) => _TaskDialog(availableTags: availableTags),
     );
     if (result != null) {
       ref
@@ -151,9 +152,13 @@ class TaskManagerPage extends ConsumerWidget {
     WidgetRef ref,
     Task task,
   ) async {
+    final availableTags = ref.read(availableTagsProvider);
     final result = await showDialog<_TaskFormResult>(
       context: context,
-      builder: (context) => _TaskDialog(initialTask: task),
+      builder: (context) => _TaskDialog(
+        initialTask: task,
+        availableTags: availableTags,
+      ),
     );
     if (result == null) return;
 
@@ -187,12 +192,12 @@ class _ActionsHeader extends StatelessWidget {
         OutlinedButton.icon(
           onPressed: () => Navigator.pushNamed(context, '/recordatorios'),
           icon: const Icon(Icons.access_time),
-          label: const Text('Ver Recordatorios'),
+          label: const Text('Vore recordatoris'),
         ),
         OutlinedButton.icon(
           onPressed: () => Navigator.pushNamed(context, '/archivo'),
           icon: const Icon(Icons.archive_outlined),
-          label: const Text('Ver Archivo'),
+          label: const Text('Vore arxiu'),
         ),
       ],
     );
@@ -215,7 +220,7 @@ class _DropboxPanel extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Sincronización',
+              'Sincronització',
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
@@ -238,8 +243,8 @@ class _DropboxPanel extends ConsumerWidget {
                         )
                       : Text(
                           dropboxState.isConnected
-                              ? 'Desconectar'
-                              : 'Conectar con Dropbox',
+                              ? 'Desconnecta'
+                              : 'Connecta amb Dropbox',
                         ),
                 ),
                 OutlinedButton(
@@ -250,7 +255,7 @@ class _DropboxPanel extends ConsumerWidget {
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Sincronizar'),
+                      : const Text('Sincronitza'),
                 ),
               ],
             ),
@@ -259,8 +264,8 @@ class _DropboxPanel extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Text(
-                  'Define DROPBOX_APP_KEY y DROPBOX_REDIRECT_URI usando --dart-define '
-                  'para habilitar la conexión OAuth.',
+                  'Defineix DROPBOX_APP_KEY i DROPBOX_REDIRECT_URI amb --dart-define '
+                  'per habilitar la connexió OAuth.',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.error,
                   ),
@@ -277,7 +282,7 @@ class _DropboxPanel extends ConsumerWidget {
                     context,
                   ).formatTimeOfDay(TimeOfDay.fromDateTime(local));
                   return Text(
-                    'Última sincronización: $date · $time',
+                    'Última sincronització: $date · $time',
                     style: Theme.of(context).textTheme.bodySmall,
                   );
                 },
@@ -424,7 +429,7 @@ class _TaskTile extends StatelessWidget {
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
-                    'Recordatorio: $reminderText',
+                    'Recordatori: $reminderText',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),
@@ -438,29 +443,34 @@ class _TaskTile extends StatelessWidget {
               if (reminder != null)
                 IconButton.filledTonal(
                   tooltip: task.reminderDone
-                      ? 'Recordatorio completado'
-                      : 'Marcar recordatorio como completado',
+                      ? 'Recordatori completat'
+                      : 'Marca el recordatori com a completat',
                   icon: Icon(
                     task.reminderDone
                         ? Icons.check_circle
                         : Icons.alarm_add_outlined,
                   ),
-                  onPressed: task.reminderDone ? null : onClearReminder,
+                  onPressed: task.reminderDone || onClearReminder == null
+                      ? null
+                      : () async {
+                          final confirmed =
+                              await _confirmReminderCompletion(context);
+                          if (confirmed) onClearReminder!();
+                        },
                   style: IconButton.styleFrom(
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                 ),
               IconButton.filledTonal(
                 icon: const Icon(Icons.edit_outlined),
-                tooltip: 'Editar tarea',
+                tooltip: 'Edita la tasca',
                 onPressed: onEdit,
                 style: IconButton.styleFrom(
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
               ),
               PopupMenuButton<TaskCategory>(
-                tooltip: 'Mover tarea',
-                icon: const Icon(Icons.drive_file_move_outlined),
+                tooltip: 'Mou la tasca',
                 onSelected: onMove,
                 itemBuilder: (context) => [
                   for (final category in moveTargets)
@@ -469,11 +479,21 @@ class _TaskTile extends StatelessWidget {
                       child: Text(category.label),
                     ),
                 ],
+                child: IconButton.filledTonal(
+                  icon: const Icon(Icons.drive_file_move_outlined),
+                  onPressed: null,
+                  style: IconButton.styleFrom(
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
               ),
               IconButton.filledTonal(
                 icon: const Icon(Icons.delete_outline),
-                tooltip: 'Eliminar tarea',
-                onPressed: onDelete,
+                tooltip: 'Elimina la tasca',
+                onPressed: () async {
+                  final confirmed = await _confirmTaskDeletion(context);
+                  if (confirmed) onDelete();
+                },
                 style: IconButton.styleFrom(
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   foregroundColor: Theme.of(context).colorScheme.error,
@@ -493,12 +513,59 @@ class _TaskTile extends StatelessWidget {
     ).formatTimeOfDay(TimeOfDay.fromDateTime(reminder));
     return '$date · $time';
   }
+
+  Future<bool> _confirmTaskDeletion(BuildContext context) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Elimina la tasca'),
+        content: const Text(
+          'Vols eliminar aquesta tasca? Aquesta acció no es pot desfer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel·la'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Elimina'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
+  Future<bool> _confirmReminderCompletion(BuildContext context) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Elimina el recordatori'),
+        content: const Text(
+          'Vols eliminar la notificació programada d\'aquesta tasca?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel·la'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Confirma'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
 }
 
 class _TaskDialog extends StatefulWidget {
-  const _TaskDialog({this.initialTask});
+  const _TaskDialog({this.initialTask, this.availableTags = const []});
 
   final Task? initialTask;
+  final List<String> availableTags;
 
   @override
   State<_TaskDialog> createState() => _TaskDialogState();
@@ -539,7 +606,7 @@ class _TaskDialogState extends State<_TaskDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(_isEditing ? 'Editar tarea' : 'Nueva tarea'),
+      title: Text(_isEditing ? 'Edita la tasca' : 'Tasca nova'),
       content: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -549,14 +616,14 @@ class _TaskDialogState extends State<_TaskDialog> {
               TextFormField(
                 controller: _titleController,
                 decoration: const InputDecoration(
-                  labelText: 'Nombre de la tarea',
+                  labelText: 'Nom de la tasca',
                 ),
                 validator: (value) =>
-                    value == null || value.isEmpty ? 'Ingresa un nombre' : null,
+                    value == null || value.isEmpty ? 'Introdueix un nom' : null,
               ),
               const SizedBox(height: 12),
               InputDecorator(
-                decoration: const InputDecoration(labelText: 'Categoría'),
+                decoration: const InputDecoration(labelText: 'Categoria'),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<TaskCategory>(
                     value: _category,
@@ -580,14 +647,37 @@ class _TaskDialogState extends State<_TaskDialog> {
               TextFormField(
                 controller: _tagsController,
                 decoration: const InputDecoration(
-                  labelText: 'Etiquetas (separadas por comas)',
+                  labelText: 'Etiquetes (separades per comes)',
                 ),
               ),
+              if (widget.availableTags.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Afegeix ràpidament una etiqueta existent:',
+                    style: Theme.of(context).textTheme.labelSmall,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: widget.availableTags
+                      .map(
+                        (tag) => InputChip(
+                          label: Text('#$tag'),
+                          onPressed: () => _addQuickTag(tag),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ],
               const SizedBox(height: 12),
               TextFormField(
                 controller: _descriptionController,
                 decoration: const InputDecoration(
-                  labelText: 'Descripción (Markdown)',
+                  labelText: 'Descripció (Markdown)',
                   alignLabelWithHint: true,
                 ),
                 keyboardType: TextInputType.multiline,
@@ -604,7 +694,7 @@ class _TaskDialogState extends State<_TaskDialog> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Vista previa',
+                        'Previsualització',
                         style: Theme.of(context).textTheme.labelMedium,
                       ),
                       const SizedBox(height: 4),
@@ -628,8 +718,8 @@ class _TaskDialogState extends State<_TaskDialog> {
                 contentPadding: EdgeInsets.zero,
                 title: Text(
                   _reminder != null
-                      ? 'Recordatorio: ${MaterialLocalizations.of(context).formatFullDate(_reminder!)}'
-                      : 'Sin recordatorio',
+                      ? 'Recordatori: ${MaterialLocalizations.of(context).formatFullDate(_reminder!)}'
+                      : 'Sense recordatori',
                 ),
                 trailing: IconButton(
                   icon: const Icon(Icons.calendar_month),
@@ -663,7 +753,7 @@ class _TaskDialogState extends State<_TaskDialog> {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () => setState(() => _reminder = null),
-                    child: const Text('Quitar recordatorio'),
+                    child: const Text('Lleva el recordatori'),
                   ),
                 ),
             ],
@@ -673,7 +763,7 @@ class _TaskDialogState extends State<_TaskDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
+          child: const Text('Cancel·la'),
         ),
         ElevatedButton(
           onPressed: () {
@@ -688,7 +778,7 @@ class _TaskDialogState extends State<_TaskDialog> {
               ),
             );
           },
-          child: Text(_isEditing ? 'Guardar' : 'Añadir'),
+          child: Text(_isEditing ? 'Guarda' : 'Afig'),
         ),
       ],
     );
@@ -700,6 +790,19 @@ class _TaskDialogState extends State<_TaskDialog> {
         .map((tag) => tag.trim())
         .where((tag) => tag.isNotEmpty)
         .toList();
+  }
+
+  void _addQuickTag(String tag) {
+    final current = _parseTags(_tagsController.text);
+    final exists =
+        current.any((element) => element.toLowerCase() == tag.toLowerCase());
+    if (!exists) {
+      current.add(tag);
+      _tagsController.text = current.join(', ');
+      _tagsController.selection = TextSelection.fromPosition(
+        TextPosition(offset: _tagsController.text.length),
+      );
+    }
   }
 }
 

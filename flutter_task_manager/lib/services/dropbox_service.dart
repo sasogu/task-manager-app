@@ -118,7 +118,7 @@ class DropboxService {
     );
     if (response.statusCode != 200) {
       throw DropboxException(
-        'Token de Dropbox inválido (status ${response.statusCode}).',
+        'Token de Dropbox no vàlid (status ${response.statusCode}).',
       );
     }
   }
@@ -129,7 +129,7 @@ class DropboxService {
     required String code,
     required String codeVerifier,
   }) async {
-    print('[Dropbox OAuth] Intercambiando código por token...');
+    print('[Dropbox OAuth] Intercanviant el codi per un token...');
     print('[Dropbox OAuth] clientId: $clientId');
     print('[Dropbox OAuth] redirectUri: $redirectUri');
     print('[Dropbox OAuth] code: $code');
@@ -146,19 +146,19 @@ class DropboxService {
       },
     );
 
-    print('[Dropbox OAuth] Respuesta de token: status=${response.statusCode} body=${response.body}');
+    print('[Dropbox OAuth] Resposta del token: status=${response.statusCode} body=${response.body}');
 
     if (response.statusCode != 200) {
-      print('[Dropbox OAuth] ERROR al intercambiar el código: ${response.body}');
+      print('[Dropbox OAuth] ERROR en intercanviar el codi: ${response.body}');
       throw DropboxException(
-        'Error intercambiando el código (${response.statusCode}): ${response.body}',
+        'Error en intercanviar el codi (${response.statusCode}): ${response.body}',
       );
     }
 
     final payload = jsonDecode(response.body) as Map<String, dynamic>;
-    print('[Dropbox OAuth] Payload recibido: $payload');
+    print('[Dropbox OAuth] Payload rebut: $payload');
     final creds = _parseCredentialsFromTokenPayload(payload);
-    print('[Dropbox OAuth] Credenciales obtenidas: accessToken=${creds.accessToken}, refreshToken=${creds.refreshToken}, expiresAt=${creds.expiresAt}');
+    print('[Dropbox OAuth] Credencials obtingudes: accessToken=${creds.accessToken}, refreshToken=${creds.refreshToken}, expiresAt=${creds.expiresAt}');
     return creds;
   }
 
@@ -178,7 +178,7 @@ class DropboxService {
 
     if (response.statusCode != 200) {
       throw DropboxException(
-        'No se pudo refrescar el token (${response.statusCode}): ${response.body}',
+        'No s\'ha pogut refrescar el token (${response.statusCode}): ${response.body}',
       );
     }
 
@@ -225,7 +225,7 @@ class DropboxService {
     );
     if (response.statusCode != 200) {
       throw DropboxException(
-        'No se pudo subir el archivo (${response.statusCode}): ${response.body}',
+        'No s\'ha pogut pujar el fitxer (${response.statusCode}): ${response.body}',
       );
     }
   }
@@ -247,7 +247,7 @@ class DropboxService {
 
     if (response.statusCode != 200) {
       throw DropboxException(
-        'No se pudo descargar el archivo (${response.statusCode}): ${response.body}',
+        'No s\'ha pogut descarregar el fitxer (${response.statusCode}): ${response.body}',
       );
     }
 

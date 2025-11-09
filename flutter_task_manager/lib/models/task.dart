@@ -1,11 +1,11 @@
 import 'package:uuid/uuid.dart';
 
 enum TaskCategory {
-  bandejaDeEntrada('Bandeja de Entrada'),
-  prioritaria('Prioritaria'),
-  proximas('Próximas'),
-  algunDia('Algún Día'),
-  archivadas('Archivadas');
+  bandejaDeEntrada('Safata d\'entrada'),
+  prioritaria('Prioritària'),
+  proximas('Pròximes'),
+  algunDia('Algun dia'),
+  archivadas('Arxivades');
 
   const TaskCategory(this.label);
   final String label;
