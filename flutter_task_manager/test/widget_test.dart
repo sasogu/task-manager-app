@@ -24,17 +24,17 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: TaskManagerApp()));
     await tester.pumpAndSettle();
 
-    expect(find.text('Gestor de Tareas'), findsOneWidget);
-    expect(find.text('Nueva Tarea'), findsOneWidget);
+  expect(find.text('Gestor de Tareas'), findsOneWidget);
+  expect(find.text('Nueva tarea'), findsOneWidget);
 
-    await tester.tap(find.text('Nueva Tarea'));
-    await tester.pumpAndSettle();
+  await tester.tap(find.text('Nueva tarea'));
+  await tester.pumpAndSettle();
 
-    expect(find.text('Nueva tarea'), findsWidgets);
+  expect(find.text('Nueva tarea'), findsWidgets);
 
-    await tester.tap(find.text('Cancelar'));
-    await tester.pumpAndSettle();
+  await tester.tap(find.text('Cancelar'));
+  await tester.pumpAndSettle();
 
-    expect(find.text('Nueva tarea'), findsOneWidget);
+  expect(find.text('Nueva tarea'), findsOneWidget);
   });
 }

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/task.dart';
 import '../models/task_state.dart';
 import '../repositories/task_repository.dart';
+import '../services/reminder_scheduler_base.dart';
 
 final tagFilterProvider = StateProvider<String?>((ref) => null);
 
@@ -12,11 +13,16 @@ final taskRepositoryProvider = Provider<TaskRepository>((ref) {
   return TaskRepository();
 });
 
+final reminderSchedulerProvider = Provider<ReminderScheduler>((ref) {
+  throw UnimplementedError('ReminderScheduler no inicializado');
+});
+
 final taskListProvider = StateNotifierProvider<TaskListNotifier, TaskState>((
   ref,
 ) {
   final repository = ref.watch(taskRepositoryProvider);
-  return TaskListNotifier(repository);
+  final scheduler = ref.watch(reminderSchedulerProvider);
+  return TaskListNotifier(repository, scheduler);
 });
 
 final activeTasksProvider = Provider<List<Task>>((ref) {
@@ -73,15 +79,17 @@ final availableTagsProvider = Provider<List<String>>((ref) {
 });
 
 class TaskListNotifier extends StateNotifier<TaskState> {
-  TaskListNotifier(this._repository) : super(const TaskState()) {
+  TaskListNotifier(this._repository, this._reminders) : super(const TaskState()) {
     _loadInitial();
   }
 
   final TaskRepository _repository;
+  final ReminderScheduler _reminders;
 
   Future<void> _loadInitial() async {
     final storedState = await _repository.loadState();
     state = storedState;
+    await _reminders.syncFromState(state.tasks);
   }
 
   void addTask(Task task) {
@@ -245,5 +253,6 @@ class TaskListNotifier extends StateNotifier<TaskState> {
 
   void _persist() {
     unawaited(_repository.saveState(state));
+    unawaited(_reminders.syncFromState(state.tasks));
   }
 }

@@ -89,6 +89,7 @@ class DropboxController extends StateNotifier<DropboxState> {
         clearError: true,
       );
     } catch (error) {
+      print('[Dropbox OAuth] ERROR en connect: $error');
       state = state.copyWith(
         isConnecting: false,
         errorMessage: 'No se pudo conectar: $error',
@@ -227,34 +228,49 @@ class DropboxController extends StateNotifier<DropboxState> {
     });
 
     final callbackScheme = Uri.parse(redirectUri).scheme;
+    print('[Dropbox OAuth] Lanzando autenticación con:');
+    print('  appKey: $appKey');
+    print('  redirectUri: $redirectUri');
+    print('  callbackScheme: $callbackScheme');
+    print('  authUrl: ${authUri.toString()}');
+
     final result = await FlutterWebAuth2.authenticate(
       url: authUri.toString(),
       callbackUrlScheme: callbackScheme,
     );
 
+    print('[Dropbox OAuth] Redirección recibida: $result');
+
     final code = _extractCode(result);
+    print('[Dropbox OAuth] Código extraído: $code');
+
     final creds = await _service.exchangeCodeForToken(
       clientId: appKey,
       redirectUri: redirectUri,
       code: code,
       codeVerifier: pkce.verifier,
     );
+    print('[Dropbox OAuth] Credenciales obtenidas: accessToken=${creds.accessToken.isNotEmpty}, refreshToken=${creds.refreshToken.isNotEmpty}, expiresAt=${creds.expiresAt}');
     return creds;
   }
 
   String _extractCode(String callbackUrl) {
+    print('[Dropbox OAuth] _extractCode: callbackUrl=$callbackUrl');
     final uri = Uri.parse(callbackUrl);
     final queryCode = uri.queryParameters['code'];
     if (queryCode != null && queryCode.isNotEmpty) {
+      print('[Dropbox OAuth] Código encontrado en query: $queryCode');
       return queryCode;
     }
     if (uri.fragment.isNotEmpty) {
       final fragmentParams = Uri.splitQueryString(uri.fragment);
       final fragmentCode = fragmentParams['code'];
       if (fragmentCode != null && fragmentCode.isNotEmpty) {
+        print('[Dropbox OAuth] Código encontrado en fragment: $fragmentCode');
         return fragmentCode;
       }
     }
+    print('[Dropbox OAuth] No se encontró código en la redirección');
     throw DropboxException('La autorización no devolvió un código válido.');
   }
 

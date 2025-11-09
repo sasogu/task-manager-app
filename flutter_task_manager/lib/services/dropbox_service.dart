@@ -129,6 +129,11 @@ class DropboxService {
     required String code,
     required String codeVerifier,
   }) async {
+    print('[Dropbox OAuth] Intercambiando código por token...');
+    print('[Dropbox OAuth] clientId: $clientId');
+    print('[Dropbox OAuth] redirectUri: $redirectUri');
+    print('[Dropbox OAuth] code: $code');
+    print('[Dropbox OAuth] codeVerifier: $codeVerifier');
     final response = await http.post(
       Uri.parse(_tokenUrl),
       headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -141,14 +146,20 @@ class DropboxService {
       },
     );
 
+    print('[Dropbox OAuth] Respuesta de token: status=${response.statusCode} body=${response.body}');
+
     if (response.statusCode != 200) {
+      print('[Dropbox OAuth] ERROR al intercambiar el código: ${response.body}');
       throw DropboxException(
         'Error intercambiando el código (${response.statusCode}): ${response.body}',
       );
     }
 
     final payload = jsonDecode(response.body) as Map<String, dynamic>;
-    return _parseCredentialsFromTokenPayload(payload);
+    print('[Dropbox OAuth] Payload recibido: $payload');
+    final creds = _parseCredentialsFromTokenPayload(payload);
+    print('[Dropbox OAuth] Credenciales obtenidas: accessToken=${creds.accessToken}, refreshToken=${creds.refreshToken}, expiresAt=${creds.expiresAt}');
+    return creds;
   }
 
   Future<DropboxCredentials> refreshAccessToken({
