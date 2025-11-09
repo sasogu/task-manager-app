@@ -40,6 +40,7 @@ Los archivos del proyecto ya incluyen el intent-filter (Android) y `CFBundleURLT
 - Cada vez que creas, editas o eliminas un recordatorio, la app vuelve a programar todas las notificaciones para mantenerlas sincronizadas con el estado actual de tus tareas.
 - Cada tarea incluye un campo de descripción con edición/renderizado Markdown, así que puedes formatear notas con listas, enlaces o énfasis.
 - La interfaz carga por defecto en valenciano (`ca_ES`) gracias a las localizaciones de Flutter; puedes añadir más locales editando `supportedLocales` en `main.dart`.
+- Incluye modo claro/oscuro (Material 3). Usa los botones del AppBar para forzar claro, oscuro o seguir el tema del sistema.
 
 ## Ejecutar
 

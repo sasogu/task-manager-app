@@ -27,11 +27,33 @@ class TaskManagerPage extends ConsumerWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Tasques')),
+      appBar: AppBar(
+        title: const Text('Tasques'),
+        actions: [
+          IconButton(
+            tooltip: 'Tema clar',
+            icon: const Icon(Icons.light_mode_outlined),
+            onPressed: () =>
+                ref.read(themeModeProvider.notifier).state = ThemeMode.light,
+          ),
+          IconButton(
+            tooltip: 'Tema fosc',
+            icon: const Icon(Icons.dark_mode_outlined),
+            onPressed: () =>
+                ref.read(themeModeProvider.notifier).state = ThemeMode.dark,
+          ),
+          IconButton(
+            tooltip: 'Tema del sistema',
+            icon: const Icon(Icons.brightness_auto_outlined),
+            onPressed: () =>
+                ref.read(themeModeProvider.notifier).state = ThemeMode.system,
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddTaskDialog(context, ref),
         icon: const Icon(Icons.add),
-        label: const Text('Nueva tarea'),
+        label: const Text('Tasca nova'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -44,18 +66,18 @@ class TaskManagerPage extends ConsumerWidget {
             const SizedBox(height: 16),
             InputDecorator(
               decoration: const InputDecoration(
-                labelText: 'Filtrar por etiqueta',
+                labelText: 'Filtra per etiqueta',
                 border: OutlineInputBorder(),
               ),
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<String?>(
                   value: filterTag,
                   isExpanded: true,
-                  hint: const Text('-- Todas las etiquetas --'),
+                  hint: const Text('-- Totes les etiquetes --'),
                   items: [
                     const DropdownMenuItem<String?>(
                       value: null,
-                      child: Text('-- Todas las etiquetas --'),
+                      child: Text('-- Totes les etiquetes --'),
                     ),
                     ...tags.map(
                       (tag) => DropdownMenuItem<String?>(

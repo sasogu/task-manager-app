@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/task.dart';
@@ -77,6 +78,8 @@ final availableTagsProvider = Provider<List<String>>((ref) {
   tags.sort();
   return tags;
 });
+
+final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.system);
 
 class TaskListNotifier extends StateNotifier<TaskState> {
   TaskListNotifier(this._repository, this._reminders) : super(const TaskState()) {

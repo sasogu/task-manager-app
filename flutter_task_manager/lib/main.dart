@@ -22,17 +22,26 @@ Future<void> main() async {
   );
 }
 
-class TaskManagerApp extends StatelessWidget {
+class TaskManagerApp extends ConsumerWidget {
   const TaskManagerApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
     return MaterialApp(
       title: 'Tasques',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF35424A)),
         useMaterial3: true,
       ),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF8BC34A),
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+      ),
+      themeMode: themeMode,
       locale: const Locale('ca', 'ES'),
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
