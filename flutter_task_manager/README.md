@@ -39,6 +39,7 @@ Los archivos del proyecto ya incluyen el intent-filter (Android) y `CFBundleURLT
 - En Web se emplea la API de notificaciones del navegador. Debes aceptar el permiso cuando se solicite y mantener abierta la PWA (o instalada como app) para que los recordatorios puedan dispararse; los navegadores no permiten programar alarmas puramente locales si la página está completamente cerrada.
 - Cada vez que creas, editas o eliminas un recordatorio, la app vuelve a programar todas las notificaciones para mantenerlas sincronizadas con el estado actual de tus tareas.
 - Cada tarea incluye un campo de descripción con edición/renderizado Markdown, así que puedes formatear notas con listas, enlaces o énfasis.
+- La interfaz carga por defecto en valenciano (`ca_ES`) gracias a las localizaciones de Flutter; puedes añadir más locales editando `supportedLocales` en `main.dart`.
 
 ## Ejecutar
 
