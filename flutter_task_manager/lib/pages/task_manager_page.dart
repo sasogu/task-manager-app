@@ -395,36 +395,56 @@ class _TaskTile extends StatelessWidget {
                 ),
               ],
             ),
-        ],
-      ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (reminder != null)
-            IconButton(
-              tooltip: task.reminderDone
-                  ? 'Recordatorio completado'
-                  : 'Marcar recordatorio como completado',
-              icon: Icon(
-                task.reminderDone
-                    ? Icons.check_circle
-                    : Icons.alarm_add_outlined,
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            children: [
+              if (reminder != null)
+                IconButton.filledTonal(
+                  tooltip: task.reminderDone
+                      ? 'Recordatorio completado'
+                      : 'Marcar recordatorio como completado',
+                  icon: Icon(
+                    task.reminderDone
+                        ? Icons.check_circle
+                        : Icons.alarm_add_outlined,
+                  ),
+                  onPressed: task.reminderDone ? null : onClearReminder,
+                  style: IconButton.styleFrom(
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              IconButton.filledTonal(
+                icon: const Icon(Icons.edit_outlined),
+                tooltip: 'Editar tarea',
+                onPressed: onEdit,
+                style: IconButton.styleFrom(
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
               ),
-              onPressed: task.reminderDone ? null : onClearReminder,
-            ),
-          IconButton(icon: const Icon(Icons.edit_outlined), onPressed: onEdit),
-          PopupMenuButton<TaskCategory>(
-            tooltip: 'Mover tarea',
-            icon: const Icon(Icons.drive_file_move_outlined),
-            onSelected: onMove,
-            itemBuilder: (context) => [
-              for (final category in moveTargets)
-                PopupMenuItem(value: category, child: Text(category.label)),
+              PopupMenuButton<TaskCategory>(
+                tooltip: 'Mover tarea',
+                icon: const Icon(Icons.drive_file_move_outlined),
+                onSelected: onMove,
+                itemBuilder: (context) => [
+                  for (final category in moveTargets)
+                    PopupMenuItem(
+                      value: category,
+                      child: Text(category.label),
+                    ),
+                ],
+              ),
+              IconButton.filledTonal(
+                icon: const Icon(Icons.delete_outline),
+                tooltip: 'Eliminar tarea',
+                onPressed: onDelete,
+                style: IconButton.styleFrom(
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  foregroundColor: Theme.of(context).colorScheme.error,
+                ),
+              ),
             ],
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline),
-            onPressed: onDelete,
           ),
         ],
       ),

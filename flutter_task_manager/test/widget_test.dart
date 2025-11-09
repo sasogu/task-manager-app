@@ -10,6 +10,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:flutter_task_manager/main.dart';
+import 'package:flutter_task_manager/models/task.dart';
+import 'package:flutter_task_manager/providers/task_providers.dart';
+import 'package:flutter_task_manager/services/reminder_scheduler_base.dart';
+
+class _FakeReminderScheduler implements ReminderScheduler {
+  @override
+  Future<void> initialize() async {}
+
+  @override
+  Future<void> syncFromState(List<Task> tasks) async {}
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -18,10 +29,15 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  testWidgets('Renderiza la pantalla principal y abre el modal', (
-    WidgetTester tester,
-  ) async {
-    await tester.pumpWidget(const ProviderScope(child: TaskManagerApp()));
+  testWidgets('Renderiza la pantalla principal y abre el modal', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          reminderSchedulerProvider.overrideWithValue(_FakeReminderScheduler()),
+        ],
+        child: const TaskManagerApp(),
+      ),
+    );
     await tester.pumpAndSettle();
 
   expect(find.text('Gestor de Tareas'), findsOneWidget);
