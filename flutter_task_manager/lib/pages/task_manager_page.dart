@@ -142,6 +142,8 @@ class TaskManagerPage extends ConsumerWidget {
               tags: result.tags,
               description: result.description,
               reminder: result.reminder,
+              recurrenceType: result.recurrenceType,
+              recurrenceInterval: result.recurrenceInterval,
             ),
           );
     }
@@ -171,6 +173,8 @@ class TaskManagerPage extends ConsumerWidget {
         description: result.description,
         reminder: result.reminder,
         reminderDone: false,
+        recurrenceType: result.recurrenceType,
+        recurrenceInterval: result.recurrenceInterval,
       ),
     );
     if (result.category != task.category) {
@@ -578,6 +582,8 @@ class _TaskDialogState extends State<_TaskDialog> {
   late final TextEditingController _descriptionController;
   late TaskCategory _category;
   DateTime? _reminder;
+  RecurrenceType _recurrenceType = RecurrenceType.none;
+  int _recurrenceInterval = 1;
 
   bool get _isEditing => widget.initialTask != null;
 
@@ -593,6 +599,8 @@ class _TaskDialogState extends State<_TaskDialog> {
         TextEditingController(text: task?.description ?? '');
     _category = task?.category ?? TaskCategory.bandejaDeEntrada;
     _reminder = task?.reminder;
+    _recurrenceType = task?.recurrenceType ?? RecurrenceType.none;
+    _recurrenceInterval = task?.recurrenceInterval ?? 1;
   }
 
   @override
@@ -756,6 +764,50 @@ class _TaskDialogState extends State<_TaskDialog> {
                     child: const Text('Lleva el recordatori'),
                   ),
                 ),
+              const SizedBox(height: 12),
+              InputDecorator(
+                decoration: const InputDecoration(labelText: 'Recurrència'),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<RecurrenceType>(
+                    value: _recurrenceType,
+                    isExpanded: true,
+                    items: [
+                      for (final type in RecurrenceType.values)
+                        DropdownMenuItem(
+                          value: type,
+                          child: Text(type.label),
+                        ),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => _recurrenceType = value);
+                      }
+                    },
+                  ),
+                ),
+              ),
+              if (_recurrenceType != RecurrenceType.none) ...[
+                const SizedBox(height: 12),
+                TextFormField(
+                  initialValue: _recurrenceInterval.toString(),
+                  decoration: const InputDecoration(
+                    labelText: 'Interval (dies/setmanes/mesos/anys)',
+                  ),
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Introdueix un interval';
+                    final parsed = int.tryParse(value);
+                    if (parsed == null || parsed < 1) return 'Ha de ser un número enter positiu';
+                    return null;
+                  },
+                  onChanged: (value) {
+                    final parsed = int.tryParse(value);
+                    if (parsed != null && parsed > 0) {
+                      setState(() => _recurrenceInterval = parsed);
+                    }
+                  },
+                ),
+              ],
             ],
           ),
         ),
@@ -775,6 +827,8 @@ class _TaskDialogState extends State<_TaskDialog> {
                 tags: _parseTags(_tagsController.text),
                 reminder: _reminder,
                 description: _descriptionController.text.trim(),
+                recurrenceType: _recurrenceType,
+                recurrenceInterval: _recurrenceInterval,
               ),
             );
           },
@@ -813,6 +867,8 @@ class _TaskFormResult {
     required this.tags,
     required this.reminder,
     required this.description,
+    this.recurrenceType = RecurrenceType.none,
+    this.recurrenceInterval = 1,
   });
 
   final String title;
@@ -820,4 +876,6 @@ class _TaskFormResult {
   final List<String> tags;
   final DateTime? reminder;
   final String description;
+  final RecurrenceType recurrenceType;
+  final int recurrenceInterval;
 }

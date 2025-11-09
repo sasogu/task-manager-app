@@ -18,6 +18,24 @@ enum TaskCategory {
   }
 }
 
+enum RecurrenceType {
+  none('Cap'),
+  daily('Diària'),
+  weekly('Setmanal'),
+  monthly('Mensual'),
+  yearly('Anual');
+
+  const RecurrenceType(this.label);
+  final String label;
+
+  static RecurrenceType fromValue(String value) {
+    return RecurrenceType.values.firstWhere(
+      (type) => type.name == value,
+      orElse: () => RecurrenceType.none,
+    );
+  }
+}
+
 class Task {
   Task({
     String? id,
@@ -32,6 +50,8 @@ class Task {
     this.archivedOn,
     this.lastModified,
     this.deletedOn,
+    this.recurrenceType = RecurrenceType.none,
+    this.recurrenceInterval = 1,
   }) : id = id ?? const Uuid().v4();
 
   final String id;
@@ -46,6 +66,8 @@ class Task {
   final DateTime? archivedOn;
   final DateTime? lastModified;
   final DateTime? deletedOn;
+  final RecurrenceType recurrenceType;
+  final int recurrenceInterval;
 
   static const _undefined = Object();
 
@@ -61,6 +83,8 @@ class Task {
     Object? archivedOn = _undefined,
     DateTime? lastModified,
     Object? deletedOn = _undefined,
+    RecurrenceType? recurrenceType,
+    int? recurrenceInterval,
   }) {
     return Task(
       id: id,
@@ -83,11 +107,14 @@ class Task {
       deletedOn: identical(deletedOn, _undefined)
           ? this.deletedOn
           : deletedOn as DateTime?,
+      recurrenceType: recurrenceType ?? this.recurrenceType,
+      recurrenceInterval: recurrenceInterval ?? this.recurrenceInterval,
     );
   }
 
   factory Task.fromJson(Map<String, dynamic> json) {
     final categoryValue = json['category'] as String?;
+    final recurrenceTypeValue = json['recurrenceType'] as String?;
     return Task(
       id: json['id'] as String?,
       title: json['title'] as String? ?? '',
@@ -116,6 +143,11 @@ class Task {
       deletedOn: json['deletedOn'] != null
           ? DateTime.tryParse(json['deletedOn'])
           : null,
+      recurrenceType: RecurrenceType.values.firstWhere(
+        (type) => type.name == recurrenceTypeValue,
+        orElse: () => RecurrenceType.none,
+      ),
+      recurrenceInterval: json['recurrenceInterval'] as int? ?? 1,
     );
   }
 
@@ -133,7 +165,37 @@ class Task {
       'archivedOn': archivedOn?.toIso8601String(),
       'lastModified': lastModified?.toIso8601String(),
       'deletedOn': deletedOn?.toIso8601String(),
+      'recurrenceType': recurrenceType.name,
+      'recurrenceInterval': recurrenceInterval,
     };
+  }
+
+  static DateTime? calculateNextReminder(DateTime? currentReminder, RecurrenceType type, int interval) {
+    if (currentReminder == null || type == RecurrenceType.none) return null;
+    switch (type) {
+      case RecurrenceType.daily:
+        return currentReminder.add(Duration(days: interval));
+      case RecurrenceType.weekly:
+        return currentReminder.add(Duration(days: 7 * interval));
+      case RecurrenceType.monthly:
+        return DateTime(
+          currentReminder.year,
+          currentReminder.month + interval,
+          currentReminder.day,
+          currentReminder.hour,
+          currentReminder.minute,
+        );
+      case RecurrenceType.yearly:
+        return DateTime(
+          currentReminder.year + interval,
+          currentReminder.month,
+          currentReminder.day,
+          currentReminder.hour,
+          currentReminder.minute,
+        );
+      default:
+        return null;
+    }
   }
 }
 

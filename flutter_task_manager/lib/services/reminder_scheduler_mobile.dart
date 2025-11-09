@@ -12,6 +12,7 @@ class AwesomeReminderScheduler implements ReminderScheduler {
 
   @override
   Future<void> initialize() async {
+    print('[TaskManager][ReminderScheduler] Inicializando AwesomeNotifications...');
     await _notifications.initialize(
       null,
       [
@@ -29,22 +30,33 @@ class AwesomeReminderScheduler implements ReminderScheduler {
       debug: kDebugMode,
     );
     final allowed = await _notifications.isNotificationAllowed();
+    print('[TaskManager][ReminderScheduler] Permisos de notificación permitidos: $allowed');
     if (!allowed) {
+      print('[TaskManager][ReminderScheduler] Solicitando permisos...');
       await _notifications.requestPermissionToSendNotifications();
+      final newAllowed = await _notifications.isNotificationAllowed();
+      print('[TaskManager][ReminderScheduler] Permisos después de solicitar: $newAllowed');
     }
   }
 
   @override
   Future<void> syncFromState(List<Task> tasks) async {
+    print('[TaskManager][ReminderScheduler] Sincronizando notificaciones para ${tasks.length} tareas...');
     await _notifications.cancelNotificationsByChannelKey(_channelKey);
+    print('[TaskManager][ReminderScheduler] Notificaciones anteriores canceladas.');
     final now = DateTime.now();
+    int scheduledCount = 0;
     for (final task in tasks) {
       final reminder = task.reminder;
       final shouldNotify = reminder != null &&
           reminder.isAfter(now) &&
           !task.reminderDone &&
           task.category != TaskCategory.archivadas;
-      if (!shouldNotify) continue;
+      if (!shouldNotify) {
+        print('[TaskManager][ReminderScheduler] Tarea ${task.id} (${task.title}) no requiere notificación.');
+        continue;
+      }
+      print('[TaskManager][ReminderScheduler] Programando notificación para tarea ${task.id} (${task.title}) en ${reminder.toLocal()}');
       await _notifications.createNotification(
         content: NotificationContent(
           id: _notificationId(task.id),
@@ -60,7 +72,9 @@ class AwesomeReminderScheduler implements ReminderScheduler {
           allowWhileIdle: true,
         ),
       );
+      scheduledCount++;
     }
+    print('[TaskManager][ReminderScheduler] Notificaciones programadas: $scheduledCount');
   }
 
   int _notificationId(String taskId) =>

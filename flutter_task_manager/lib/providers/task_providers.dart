@@ -124,6 +124,21 @@ class TaskListNotifier extends StateNotifier<TaskState> {
           lastModified: now,
         );
       }
+      // Si tiene recurrencia, reprogramar en lugar de archivar
+      if (task.recurrenceType != RecurrenceType.none && task.reminder != null) {
+        final nextReminder = Task.calculateNextReminder(
+          task.reminder,
+          task.recurrenceType,
+          task.recurrenceInterval,
+        );
+        return task.copyWith(
+          completed: false,
+          reminder: nextReminder,
+          reminderDone: false,
+          lastModified: now,
+        );
+      }
+      // Comportamiento normal: archivar
       return task.copyWith(
         completed: true,
         category: TaskCategory.archivadas,
