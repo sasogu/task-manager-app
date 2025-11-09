@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/dropbox_config.dart';
@@ -116,6 +117,7 @@ class TaskManagerPage extends ConsumerWidget {
               title: result.title,
               category: result.category,
               tags: result.tags,
+              description: result.description,
               reminder: result.reminder,
             ),
           );
@@ -139,6 +141,7 @@ class TaskManagerPage extends ConsumerWidget {
       (current) => current.copyWith(
         title: result.title,
         tags: result.tags,
+        description: result.description,
         reminder: result.reminder,
         reminderDone: false,
       ),
@@ -347,6 +350,7 @@ class _TaskTile extends StatelessWidget {
     final reminderText = reminder != null
         ? _formatReminder(context, reminder.toLocal())
         : null;
+    final description = task.description.trim();
     final moveTargets = TaskCategory.values
         .where((category) => category != task.category)
         .toList();
@@ -375,6 +379,15 @@ class _TaskTile extends StatelessWidget {
                     ),
                   )
                   .toList(),
+            ),
+          if (description.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: MarkdownBody(
+                data: description,
+                styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context))
+                    .copyWith(textScaleFactor: 0.95),
+              ),
             ),
           if (reminderText != null)
             Row(
@@ -473,6 +486,7 @@ class _TaskDialogState extends State<_TaskDialog> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _titleController;
   late final TextEditingController _tagsController;
+  late final TextEditingController _descriptionController;
   late TaskCategory _category;
   DateTime? _reminder;
 
@@ -486,6 +500,8 @@ class _TaskDialogState extends State<_TaskDialog> {
     _tagsController = TextEditingController(
       text: (task?.tags ?? const []).join(', '),
     );
+    _descriptionController =
+        TextEditingController(text: task?.description ?? '');
     _category = task?.category ?? TaskCategory.bandejaDeEntrada;
     _reminder = task?.reminder;
   }
@@ -494,6 +510,7 @@ class _TaskDialogState extends State<_TaskDialog> {
   void dispose() {
     _titleController.dispose();
     _tagsController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -543,6 +560,46 @@ class _TaskDialogState extends State<_TaskDialog> {
                 decoration: const InputDecoration(
                   labelText: 'Etiquetas (separadas por comas)',
                 ),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _descriptionController,
+                decoration: const InputDecoration(
+                  labelText: 'Descripción (Markdown)',
+                  alignLabelWithHint: true,
+                ),
+                keyboardType: TextInputType.multiline,
+                maxLines: 6,
+                minLines: 3,
+              ),
+              const SizedBox(height: 8),
+              ValueListenableBuilder<TextEditingValue>(
+                valueListenable: _descriptionController,
+                builder: (context, value, _) {
+                  final text = value.text.trim();
+                  if (text.isEmpty) return const SizedBox.shrink();
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Vista previa',
+                        style: Theme.of(context).textTheme.labelMedium,
+                      ),
+                      const SizedBox(height: 4),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: Theme.of(context).dividerColor,
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: MarkdownBody(data: text),
+                      ),
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 12),
               ListTile(
@@ -605,6 +662,7 @@ class _TaskDialogState extends State<_TaskDialog> {
                 category: _category,
                 tags: _parseTags(_tagsController.text),
                 reminder: _reminder,
+                description: _descriptionController.text.trim(),
               ),
             );
           },
@@ -629,10 +687,12 @@ class _TaskFormResult {
     required this.category,
     required this.tags,
     required this.reminder,
+    required this.description,
   });
 
   final String title;
   final TaskCategory category;
   final List<String> tags;
   final DateTime? reminder;
+  final String description;
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'pages/archive_page.dart';
@@ -32,6 +33,17 @@ class TaskManagerApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF35424A)),
         useMaterial3: true,
       ),
+      locale: const Locale('ca', 'ES'),
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('ca', 'ES'),
+        Locale('es', 'ES'),
+        Locale('en', 'US'),
+      ],
       routes: {
         '/': (context) => const TaskManagerPage(),
         '/recordatorios': (context) => const RecordatoriosPage(),
