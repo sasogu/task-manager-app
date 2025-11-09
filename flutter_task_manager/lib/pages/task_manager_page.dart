@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../config/dropbox_config.dart';
 import '../models/task.dart';
@@ -418,6 +419,14 @@ class _TaskTile extends StatelessWidget {
                 data: description,
                 styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context))
                     .copyWith(textScaleFactor: 0.95),
+                onTapLink: (text, href, title) async {
+                  if (href != null) {
+                    final uri = Uri.tryParse(href);
+                    if (uri != null && await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    }
+                  }
+                },
               ),
             ),
           if (reminderText != null)
@@ -715,7 +724,17 @@ class _TaskDialogState extends State<_TaskDialog> {
                           ),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: MarkdownBody(data: text),
+                        child: MarkdownBody(
+                          data: text,
+                          onTapLink: (text, href, title) async {
+                            if (href != null) {
+                              final uri = Uri.tryParse(href);
+                              if (uri != null && await canLaunchUrl(uri)) {
+                                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                              }
+                            }
+                          },
+                        ),
                       ),
                     ],
                   );

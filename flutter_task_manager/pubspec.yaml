@@ -44,6 +44,7 @@ dependencies:
   http: ^1.2.2
   awesome_notifications: ^0.10.1
   flutter_markdown: ^0.7.2
+  url_launcher: ^6.3.0
 
 dev_dependencies:
   flutter_test:
