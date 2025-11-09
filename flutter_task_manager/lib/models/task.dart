@@ -24,6 +24,7 @@ class Task {
     required this.title,
     required this.category,
     this.tags = const [],
+    this.description = '',
     this.reminder,
     this.completed = false,
     this.previousCategory,
@@ -37,6 +38,7 @@ class Task {
   final String title;
   final TaskCategory category;
   final List<String> tags;
+  final String description;
   final DateTime? reminder;
   final bool completed;
   final TaskCategory? previousCategory;
@@ -51,6 +53,7 @@ class Task {
     String? title,
     TaskCategory? category,
     List<String>? tags,
+    String? description,
     Object? reminder = _undefined,
     bool? completed,
     Object? previousCategory = _undefined,
@@ -64,6 +67,7 @@ class Task {
       title: title ?? this.title,
       category: category ?? this.category,
       tags: tags ?? this.tags,
+      description: description ?? this.description,
       reminder: identical(reminder, _undefined)
           ? this.reminder
           : reminder as DateTime?,
@@ -94,6 +98,7 @@ class Task {
       tags: (json['tags'] as List<dynamic>? ?? [])
           .map((tag) => tag.toString())
           .toList(),
+      description: json['description'] as String? ?? '',
       reminder: json['reminder'] != null
           ? DateTime.tryParse(json['reminder'])
           : null,
@@ -120,6 +125,7 @@ class Task {
       'title': title,
       'category': category.name,
       'tags': tags,
+      'description': description,
       'reminder': reminder?.toIso8601String(),
       'completed': completed,
       'previousCategory': previousCategory?.name,

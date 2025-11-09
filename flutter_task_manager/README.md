@@ -1,4 +1,4 @@
-# Flutter Task Manager
+# Tasques
 
 Aplicación Flutter para gestionar tareas con sincronización opcional a Dropbox y compatibilidad web/mobile.
 
@@ -79,6 +79,8 @@ obtendrás
     build/app/outputs/bundle/release/app-release.aab.
 
 Antes de compilar release asegúrate de configurar una keystore (key.properties, build.gradle) y, si planeas habilitar OAuth en producción, registra el mismo esquema flutter-task-manager://auth en la consola de Dropbox.
+
+El `applicationId`/`bundle identifier` oficial de Tasques es `com.sasogu.tasques` (y las pruebas usan `com.sasogu.tasques.RunnerTests`). Usa esos valores cuando configures servicios externos (Firebase, notificaciones push, etc.).
 
 Para pruebas rápidas puedes usar flutter run -d <dispositivo_android> --release --dart-define=… o --profile; 
 recuerda activar el modo desarrollador y la depuración USB en tu dispositivo.

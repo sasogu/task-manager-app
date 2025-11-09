@@ -40,7 +40,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-  expect(find.text('Gestor de Tareas'), findsOneWidget);
+  expect(find.text('Tasques'), findsOneWidget);
   expect(find.text('Nueva tarea'), findsOneWidget);
 
   await tester.tap(find.text('Nueva tarea'));

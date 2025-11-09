@@ -26,7 +26,7 @@ class TaskManagerPage extends ConsumerWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Gestor de Tareas')),
+      appBar: AppBar(title: const Text('Tasques')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddTaskDialog(context, ref),
         icon: const Icon(Icons.add),
