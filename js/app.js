@@ -647,7 +647,7 @@ async function syncToDropbox(showAlert = true) {
     const data = { categories, deletedTasks, lastSync: new Date().toISOString() };
     try {
         const response = await fetch('https://content.dropboxapi.com/2/files/upload', {
-            method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/octet-stream', 'Dropbox-API-Arg': JSON.stringify({ path: '/tareas.json', mode: 'overwrite' }) }, body: JSON.stringify(data, null, 2)
+            method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/octet-stream', 'Dropbox-API-Arg': JSON.stringify({ path: '/task-manager/state.json', mode: 'overwrite' }) }, body: JSON.stringify(data, null, 2)
         });
         if (response.status === 401) {
             accessToken = null;
@@ -671,7 +671,7 @@ async function syncToDropbox(showAlert = true) {
 async function syncFromDropbox(force = false) {
     if (!accessToken) return false;
     try {
-        const meta = await fetch('https://api.dropboxapi.com/2/files/get_metadata', { method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ path: '/tareas.json' }) });
+        const meta = await fetch('https://api.dropboxapi.com/2/files/get_metadata', { method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ path: '/task-manager/state.json' }) });
         if (meta.status === 401) {
             accessToken = null;
             localStorage.removeItem('dropbox_access_token');
@@ -683,7 +683,7 @@ async function syncFromDropbox(force = false) {
         if (!meta.ok) return meta.status === 409 ? await syncToDropbox(false) : false;
         const remoteMeta = await meta.json();
         if (force || !localLastSync || new Date(remoteMeta.server_modified) > new Date(localLastSync)) {
-            const res = await fetch('https://content.dropboxapi.com/2/files/download', { method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}`, 'Dropbox-API-Arg': JSON.stringify({ path: '/tareas.json' }) } });
+            const res = await fetch('https://content.dropboxapi.com/2/files/download', { method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}`, 'Dropbox-API-Arg': JSON.stringify({ path: '/task-manager/state.json' }) } });
             if (res.status === 401) {
                 accessToken = null;
                 localStorage.removeItem('dropbox_access_token');
@@ -921,7 +921,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'tareas.json';
+        a.download = 'state.json';
         document.body.appendChild(a);
         a.click();
         setTimeout(() => {
