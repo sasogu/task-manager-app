@@ -18,12 +18,17 @@
             <a href="recordatorios.html" class="boton-accion boton-secundario">⏰ Ver Recordatorios</a>
             <a href="archivo.html" class="boton-accion boton-secundario">🗄️ Ver Archivo</a>
         </div>
-          <!-- Contenedor de Controles -->
-    <div class="controles-principales">
-        <div class="grupo-botones" id="sync-group">
-            <h3>Sincronización</h3>
-            <button id="dropbox-login" type="button" class="boton-accion">Conectar con Dropbox</button>
-            <button id="dropbox-sync" type="button" class="boton-accion" style="display:none;">Sincronizar</button>
+        <!-- Contenedor de Controles -->
+        <div class="controles-principales">
+            <div class="grupo-botones" id="sync-group">
+                <h3>Sincronización</h3>
+                <button id="dropbox-login" type="button" class="boton-accion">Conectar con Dropbox</button>
+                <button id="dropbox-sync" type="button" class="boton-accion" style="display:none;">Sincronizar</button>
+                <button id="export-backup-btn" type="button" class="boton-accion">Exportar copia de seguridad</button>
+                <label for="import-backup-input" class="boton-accion" style="display:inline-block; cursor:pointer;">Importar copia de seguridad
+                    <input id="import-backup-input" type="file" accept="application/json" style="display:none;" />
+                </label>
+            </div>
         </div>
     </header>
     <main>

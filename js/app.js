@@ -909,8 +909,52 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     document.getElementById('dropbox-sync')?.addEventListener('click', performFullSync);
 
-    // Lógica de Backup/Restore y Limpieza
-    // ... (Aquí irían los listeners para backup-btn, restore-btn, etc., que ya tenías)
+    // Lógica de Exportar/Importar Backup manual
+    document.getElementById('export-backup-btn')?.addEventListener('click', () => {
+        // Construir el objeto de backup igual que tareas.json
+        const backup = {
+            categories,
+            deletedTasks,
+            lastModified: new Date().toISOString()
+        };
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'tareas.json';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 100);
+    });
+
+    document.getElementById('import-backup-input')?.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            try {
+                const imported = JSON.parse(evt.target.result);
+                if (imported.categories && imported.deletedTasks) {
+                    Object.assign(categories, imported.categories);
+                    deletedTasks.length = 0;
+                    Array.prototype.push.apply(deletedTasks, imported.deletedTasks);
+                    saveCategoriesToLocalStorage();
+                    localStorage.setItem('deletedTasks', JSON.stringify(deletedTasks));
+                    renderTasks();
+                    showToast('✅ Copia de seguridad importada correctamente');
+                } else {
+                    showToast('❌ Formato de backup no válido', 'error');
+                }
+            } catch (err) {
+                showToast('❌ Error al importar backup', 'error');
+            }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+    });
 
     const clearBtn = document.getElementById('clear-data-btn');
     if (clearBtn) {
