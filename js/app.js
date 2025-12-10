@@ -21,6 +21,8 @@ const categoryNames = {
 
 const deletedTasks = JSON.parse(localStorage.getItem('deletedTasks') || '[]');
 const DROPBOX_APP_KEY = 'f21fzdjtng58vcg';
+const DROPBOX_STATE_PATH = (window.DropboxCompat && DropboxCompat.STATE_PATH) || '/task-manager/state.json';
+const DROPBOX_LEGACY_PATH = (window.DropboxCompat && DropboxCompat.LEGACY_PATH) || '/tareas.json';
 let accessToken = localStorage.getItem('dropbox_access_token');
 let localLastSync = localStorage.getItem('lastSync');
 let syncInterval = null;
@@ -177,7 +179,10 @@ function convertirEnlaces(texto) {
 function saveCategoriesToLocalStorage() { localStorage.setItem('categories', JSON.stringify(categories)); }
 function loadCategoriesFromLocalStorage() {
     const stored = localStorage.getItem('categories');
-    if (stored) Object.assign(categories, JSON.parse(stored));
+    if (stored) {
+        const parsed = JSON.parse(stored);
+        Object.assign(categories, normalizeCategoriesShape(parsed));
+    }
 }
 function migrateOldTasks() {
     let needsSave = false;
@@ -188,6 +193,40 @@ function migrateOldTasks() {
         });
     }
     if (needsSave) { console.log('🔧 Migrando tareas antiguas.'); saveCategoriesToLocalStorage(); }
+}
+
+function normalizeCategoriesShape(obj) {
+    if (window.DropboxCompat && DropboxCompat.ensureCategoriesShape) {
+        return DropboxCompat.ensureCategoriesShape(obj);
+    }
+    return {
+        "bandeja-de-entrada": Array.isArray(obj?.["bandeja-de-entrada"]) ? obj["bandeja-de-entrada"] : [],
+        "prioritaria": Array.isArray(obj?.prioritaria) ? obj.prioritaria : [],
+        "proximas": Array.isArray(obj?.proximas) ? obj.proximas : [],
+        "algun-dia": Array.isArray(obj?.["algun-dia"]) ? obj["algun-dia"] : [],
+        "archivadas": Array.isArray(obj?.archivadas) ? obj.archivadas : []
+    };
+}
+
+function buildStateSnapshotFromWeb(lastSyncISO) {
+    if (window.DropboxCompat && DropboxCompat.toStateSnapshot) {
+        return DropboxCompat.toStateSnapshot({ categories, deletedTasks, lastSync: lastSyncISO });
+    }
+    return { tasks: [], deletedTasks: [], lastSync: lastSyncISO };
+}
+
+function parseDropboxPayload(raw) {
+    if (window.DropboxCompat && DropboxCompat.parseAnyPayload) {
+        return DropboxCompat.parseAnyPayload(raw);
+    }
+    if (raw?.categories) {
+        return {
+            categories: normalizeCategoriesShape(raw.categories),
+            deletedTasks: Array.isArray(raw.deletedTasks) ? raw.deletedTasks : [],
+            lastSync: raw.lastSync || null
+        };
+    }
+    return null;
 }
 
 // --- LÓGICA DE MANIPULACIÓN DE TAREAS (CORREGIDA CON IDs) ---
@@ -644,22 +683,46 @@ function mergeDeletedTasks(localDeleted, remoteDeleted) {
 
 async function syncToDropbox(showAlert = true) {
     if (!accessToken) return false;
-    const data = { categories, deletedTasks, lastSync: new Date().toISOString() };
+    const timestamp = new Date().toISOString();
+    const webSnapshot = { categories, deletedTasks, lastSync: timestamp };
+    const stateSnapshot = buildStateSnapshotFromWeb(timestamp);
+    const uploads = [
+        { path: DROPBOX_STATE_PATH, body: JSON.stringify(stateSnapshot, null, 2), label: 'state' },
+        { path: DROPBOX_LEGACY_PATH, body: JSON.stringify(webSnapshot, null, 2), label: 'legacy' }
+    ];
+    let savedServerModified = null;
     try {
-        const response = await fetch('https://content.dropboxapi.com/2/files/upload', {
-            method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/octet-stream', 'Dropbox-API-Arg': JSON.stringify({ path: '/task-manager/state.json', mode: 'overwrite' }) }, body: JSON.stringify(data, null, 2)
-        });
-        if (response.status === 401) {
-            accessToken = null;
-            localStorage.removeItem('dropbox_access_token');
-            updateDropboxButtons();
-            showToast('⚠️ Tu sesión de Dropbox ha caducado. Vuelve a conectar.');
-            showReconnectDropboxBtn();
-            return false;
+        for (const upload of uploads) {
+            const response = await fetch('https://content.dropboxapi.com/2/files/upload', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/octet-stream',
+                    'Dropbox-API-Arg': JSON.stringify({ path: upload.path, mode: 'overwrite' })
+                },
+                body: upload.body
+            });
+            if (response.status === 401) {
+                accessToken = null;
+                localStorage.removeItem('dropbox_access_token');
+                updateDropboxButtons();
+                showToast('⚠️ Tu sesión de Dropbox ha caducado. Vuelve a conectar.');
+                showReconnectDropboxBtn();
+                return false;
+            }
+            if (response.ok) {
+                const metadata = await response.json();
+                if (upload.label === 'state' && metadata?.server_modified) {
+                    savedServerModified = metadata.server_modified;
+                } else if (!savedServerModified && metadata?.server_modified) {
+                    savedServerModified = metadata.server_modified;
+                }
+            } else {
+                console.warn('Dropbox: fallo al subir', upload.path, response.status, await response.text());
+            }
         }
-        if (response.ok) {
-            const metadata = await response.json();
-            localLastSync = metadata.server_modified;
+        if (savedServerModified) {
+            localLastSync = savedServerModified;
             localStorage.setItem('lastSync', localLastSync);
             if (showAlert) showToast('✅ Tareas subidas a Dropbox');
             return true;
@@ -671,8 +734,20 @@ async function syncToDropbox(showAlert = true) {
 async function syncFromDropbox(force = false) {
     if (!accessToken) return false;
     try {
-        const meta = await fetch('https://api.dropboxapi.com/2/files/get_metadata', { method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ path: '/task-manager/state.json' }) });
-        if (meta.status === 401) {
+        const metaPromises = [DROPBOX_STATE_PATH, DROPBOX_LEGACY_PATH].map(path => fetch('https://api.dropboxapi.com/2/files/get_metadata', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path })
+        }).then(async res => {
+            if (res.status === 401) return { status: 401, path };
+            if (res.status === 409) return { status: 409, path };
+            if (!res.ok) return { status: res.status, path };
+            const data = await res.json();
+            return { status: 200, path, server_modified: data.server_modified };
+        }));
+        const metaResults = await Promise.all(metaPromises);
+
+        if (metaResults.some(m => m.status === 401)) {
             accessToken = null;
             localStorage.removeItem('dropbox_access_token');
             updateDropboxButtons();
@@ -680,37 +755,48 @@ async function syncFromDropbox(force = false) {
             showReconnectDropboxBtn();
             return false;
         }
-        if (!meta.ok) return meta.status === 409 ? await syncToDropbox(false) : false;
-        const remoteMeta = await meta.json();
-        if (force || !localLastSync || new Date(remoteMeta.server_modified) > new Date(localLastSync)) {
-            const res = await fetch('https://content.dropboxapi.com/2/files/download', { method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}`, 'Dropbox-API-Arg': JSON.stringify({ path: '/task-manager/state.json' }) } });
-            if (res.status === 401) {
-                accessToken = null;
-                localStorage.removeItem('dropbox_access_token');
-                updateDropboxButtons();
-                showToast('⚠️ Tu sesión de Dropbox ha caducado. Vuelve a conectar.');
-                showReconnectDropboxBtn();
-                return false;
-            }
-            if (res.ok) {
-                const remoteData = await res.json();
-                if (remoteData.categories) {
-                    // 1. Fusionar eliminados
-                    const remoteDeleted = remoteData.deletedTasks || [];
-                    const mergedDeletedList = mergeDeletedTasks(deletedTasks, remoteDeleted);
-                    const deletedIdsSet = new Set(mergedDeletedList.map(t => t.id));
-                    // 2. Fusionar categorías ignorando eliminados
-                    const mergedCategories = mergeTasks(categories, remoteData.categories, deletedIdsSet);
-                    Object.assign(categories, mergedCategories);
-                    deletedTasks.length = 0;
-                    Array.prototype.push.apply(deletedTasks, mergedDeletedList);
-                    saveCategoriesToLocalStorage();
-                    localStorage.setItem('deletedTasks', JSON.stringify(deletedTasks));
-                    renderTasks();
-                    localLastSync = remoteMeta.server_modified;
-                    localStorage.setItem('lastSync', localLastSync);
-                    return true;
-                }
+
+        const availableMetas = metaResults.filter(m => m.status === 200);
+        if (availableMetas.length === 0) {
+            const shouldUpload = metaResults.every(m => m.status === 409);
+            return shouldUpload ? await syncToDropbox(false) : false;
+        }
+
+        const latestMeta = availableMetas.sort((a, b) => new Date(b.server_modified) - new Date(a.server_modified))[0];
+        if (!force && localLastSync && new Date(latestMeta.server_modified) <= new Date(localLastSync)) {
+            return true;
+        }
+
+        const res = await fetch('https://content.dropboxapi.com/2/files/download', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${accessToken}`, 'Dropbox-API-Arg': JSON.stringify({ path: latestMeta.path }) }
+        });
+        if (res.status === 401) {
+            accessToken = null;
+            localStorage.removeItem('dropbox_access_token');
+            updateDropboxButtons();
+            showToast('⚠️ Tu sesión de Dropbox ha caducado. Vuelve a conectar.');
+            showReconnectDropboxBtn();
+            return false;
+        }
+        if (res.ok) {
+            const remoteData = await res.json();
+            const parsed = parseDropboxPayload(remoteData);
+            if (parsed && parsed.categories) {
+                const normalizedCategories = normalizeCategoriesShape(parsed.categories);
+                const remoteDeleted = Array.isArray(parsed.deletedTasks) ? parsed.deletedTasks : [];
+                const mergedDeletedList = mergeDeletedTasks(deletedTasks, remoteDeleted);
+                const deletedIdsSet = new Set(mergedDeletedList.map(t => t.id));
+                const mergedCategories = mergeTasks(categories, normalizedCategories, deletedIdsSet);
+                Object.assign(categories, mergedCategories);
+                deletedTasks.length = 0;
+                Array.prototype.push.apply(deletedTasks, mergedDeletedList);
+                saveCategoriesToLocalStorage();
+                localStorage.setItem('deletedTasks', JSON.stringify(deletedTasks));
+                renderTasks();
+                localLastSync = latestMeta.server_modified;
+                localStorage.setItem('lastSync', localLastSync);
+                return true;
             }
         }
     } catch (e) { console.error('Error en syncFromDropbox', e); }

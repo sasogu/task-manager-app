@@ -149,22 +149,38 @@ document.addEventListener('DOMContentLoaded', function() {
             const categories = JSON.parse(localStorage.getItem('categories') || '{}');
             const deletedTasks = JSON.parse(localStorage.getItem('deletedTasks') || '[]');
             const payload = { categories, deletedTasks, lastSync: new Date().toISOString() };
-            const res = await fetch('https://content.dropboxapi.com/2/files/upload', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/octet-stream',
-                    'Dropbox-API-Arg': JSON.stringify({ path: '/tareas.json', mode: 'overwrite' })
+            const stateSnapshot = window.DropboxCompat?.toStateSnapshot
+                ? DropboxCompat.toStateSnapshot(payload)
+                : null;
+            const uploads = [
+                {
+                    path: (window.DropboxCompat && DropboxCompat.STATE_PATH) || '/task-manager/state.json',
+                    body: JSON.stringify(stateSnapshot || payload, null, 2)
                 },
-                body: JSON.stringify(payload, null, 2)
-            });
-            if (res.status === 401) {
-                // Token inválido; limpiar para que index gestione reconexión
-                localStorage.removeItem('dropbox_access_token');
-                console.warn('Dropbox: token inválido al sincronizar desde archivo.');
-            } else if (!res.ok) {
-                const t = await res.text();
-                console.warn('Dropbox: error de subida desde archivo:', res.status, t);
+                {
+                    path: (window.DropboxCompat && DropboxCompat.LEGACY_PATH) || '/tareas.json',
+                    body: JSON.stringify(payload, null, 2)
+                }
+            ];
+            for (const upload of uploads) {
+                const res = await fetch('https://content.dropboxapi.com/2/files/upload', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/octet-stream',
+                        'Dropbox-API-Arg': JSON.stringify({ path: upload.path, mode: 'overwrite' })
+                    },
+                    body: upload.body
+                });
+                if (res.status === 401) {
+                    localStorage.removeItem('dropbox_access_token');
+                    console.warn('Dropbox: token inválido al sincronizar desde archivo.');
+                    return;
+                }
+                if (!res.ok) {
+                    const t = await res.text();
+                    console.warn('Dropbox: error de subida desde archivo:', res.status, t);
+                }
             }
         } catch (err) {
             console.warn('Dropbox: fallo de red en sync desde archivo:', err);

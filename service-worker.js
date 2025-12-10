@@ -1,4 +1,4 @@
-const CACHE_NAME = 'task-manager-cache-v1.4.4'; // Versión incrementada
+const CACHE_NAME = 'task-manager-cache-v1.4.5'; // Versión incrementada
 // URL base del scope del SW (funciona tanto en GitHub Pages como en localhost)
 const SCOPE_BASE = self.registration?.scope || self.location.origin + '/';
 const OFFLINE_FALLBACK_URL = new URL('index.html', SCOPE_BASE).toString();
@@ -13,6 +13,7 @@ const urlsToCache = [
   'js/app.js',
   'js/archivo.js',
   'js/recordatorios.js',
+  'js/dropbox-compat.js',
   'js/sw-register.js',
   'js/recordatorios.js',
   'manifest.json'
